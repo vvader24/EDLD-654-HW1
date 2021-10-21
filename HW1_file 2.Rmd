@@ -1,0 +1,174 @@
+---
+title: "HW 1_file 2"
+author: "Vinita Vader"
+date: "10/18/2021"
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(rio)
+library(janitor)
+library(stringr)
+library(unglue)
+library(finalfit)
+```
+
+# Part 2: Preprocessing Continuous and Categorical Variables
+
+## Task 2.1, 2.2
+```{r}
+# Task 2.1
+data_edu <- import("https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/oregon.csv", setclass = "tb_df") %>% 
+           characterize() %>% 
+           clean_names() %>% 
+#Task 2.2
+  mutate(month = as.numeric(unglue_vec(tst_dt, "{x}/{y}/{z}", var = "x")), 
+         date = as.numeric(unglue_vec(tst_dt, "{x}/{y}/{z}", var = "y"))) %>%
+  select(-tst_dt) 
+  
+names(data_edu)
+#head(data_edu1, 3)
+
+freq_date <- data_edu %>% count(date)
+freq_date %>% knitr::kable()
+
+freq_month <- data_edu %>% count(month)
+freq_month %>% knitr::kable() 
+```
+
+## Task 2.3
+```{r}
+d <- ff_glimpse(data_edu)
+
+d
+
+cat_var <- d[["Categorical"]] %>% 
+  filter(missing_percent > 75) %>% 
+  select(label)
+cat_var
+
+cont_var <- d[["Continuous"]] %>% 
+  filter(missing_percent > 75) %>% 
+  select(label)
+cont_var
+
+#None of the continuous variables are missing more than 75% data
+ 
+
+data_edu <- data_edu %>% 
+  select(-c(paste(cat_var)))
+```
+
+## Task 2.4
+```{r}
+all_CatVar <- rownames(ff_glimpse(data_edu)$Categorical) 
+
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., table)
+
+#Notes for Vader - Figure out how to extract variable from a list with a certain level
+
+
+#trgt_assist_fg variable has Yes coded as both ‘y’ and ‘Y’. Lets fix this.
+data_edu <- data_edu %>% 
+  mutate(trgt_assist_fg = recode(trgt_assist_fg, "y" = "Y"))
+
+#Check
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., table)
+
+# check the distribution of numeric variables and make sure there is no anomaly.
+
+data_edu %>% 
+  select_if(is.numeric) %>% 
+  select(-id, -date, -month) %>% 
+  gather() %>%                            
+  ggplot(aes(value)) +                     # Plot the values
+    facet_wrap(~ key, scales = "free") +   # In separate panels
+    geom_density()   
+
+#Ask Cengiz about this 
+```
+
+
+## Task 2.5
+```{r}
+#devtools::install_github("tidymodels/recipes")
+require(recipes)
+
+#Make sure the type of all categorical variables are either character or factor.
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., typeof)
+
+
+# List of variable types
+  
+  outcome <- c('score') 
+  
+  id      <- c('id') #id
+  
+  categorical <- c('sex', 'ethnic_cd', 'tst_bnch', 'migrant_ed_fg',  'ind_ed_fg', 'sp_ed_fg', 'tag_ed_fg', 'econ_dsvntg', 'stay_in_dist', 'stay_in_schl', 'dist_sped', 'trgt_assist_fg', 'ayp_dist_partic', 'ayp_schl_partic', 'ayp_dist_prfrm', 'ayp_schl_prfrm', 'rc_dist_partic', 'rc_schl_partic', 'rc_dist_prfrm', 'rc_schl_prfrm', 'grp_rpt_dist_partic', 'grp_rpt_schl_partic', 'grp_rpt_dist_prfrm', 'grp_rpt_schl_prfrm') 
+  cyclic <- c('date', 'month')
+  numeric   <- c('enrl_grd')
+
+  
+blueprint <- recipe(
+  x = data_edu ,
+  vars = c(outcome, categorical, cyclic, numeric, id),
+  roles =  c('outcome', rep('predictor', 27), 'ID')) %>% 
+  
+    ### for all 27 predictors, create an indicator variable for missingness
+  step_indicate_na(all_of(categorical),all_of(numeric)) %>%
+  
+  
+  ### Remove the numeric variable with zero variance
+  step_zv(all_of(numeric)) %>%
+  
+  
+  ### Impute the missing values using mean numeric predictors, mode for categorical predictors
+  
+  step_impute_mean(all_of(numeric)) %>%
+  step_impute_mode(all_of(categorical)) %>%
+  
+  
+ ### recode cyclic predictors - date and month - into two new variables of sin and cos terms,
+  step_harmonic(all_of(cyclic), cycle_size = 1)  %>%
+
+###expand numeric predictors using using natural splines with three degrees of freedom and standardize,
+  
+# Natural splines for numeric variables 
+  
+  step_ns(all_of(numeric), deg_free=3) %>%
+  
+  # Standardize the natural splines of numeric variables 
+  
+  step_normalize(paste0(numeric,'_ns_1'),
+                 paste0(numeric,'_ns_2'),
+                 paste0(numeric,'_ns_3')) %>% 
+
+###recode categorical predictors into dummy variables using one-hot encoding.
+
+    step_dummy(all_of(categorical),one_hot=TRUE)
+
+blueprint
+
+prepare <- prep(blueprint, training = data_edu)
+```
+
+
+## Task 2.6
+
+```{r}
+baked_data_edu <- bake(prepare, new_data = data_edu)
+
+baked_data_edu
+```
+
+
+## Task 2.7
+
+## Task 2.8

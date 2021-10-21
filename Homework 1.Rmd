@@ -1,0 +1,337 @@
+---
+title: "Homework 1"
+author: "Vinita Vader"
+date: "10/16/2021"
+output: html_document
+---
+
+# Setup 
+```{r setup}
+library(tidyverse)
+library(rio)
+library(janitor)
+library(stringr)
+library(purrr)
+library(unglue)
+library(finalfit)
+#devtools::install_github("tidymodels/recipes")
+require(recipes)
+```
+
+
+# Part 1: Preprocessing Text Data
+
+```{r eval=TRUE, echo=FALSE}
+load("~/Desktop/EDLD 654/HW 1/Text Analysis HW 1/Task1_ word embed.RData")
+```
+
+## Task 1.1, 1.2, 1.3
+
+```{r}
+
+#Task 1.1
+data <- rio::import("https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/tweet_sub.csv") %>% 
+           characterize() %>% 
+           clean_names() %>% 
+#Task 1.2
+mutate(day = word(time, 1),
+         month = word(time, 2),
+         date = word(time, 3), 
+         hour = str_sub(word(time, 4), start = 2L, end = 2L)) %>% 
+  mutate(day = recode(day, `Mon` = 1,
+                           `Tue` = 2,
+                           `Wed` = 3, 
+                           `Thu` = 4,
+                           `Fri` = 5, 
+                           `Sat` = 6, 
+                           `Sun` = 7)) %>% 
+#Task 1.3
+    mutate(sentiment = recode(sentiment, `Positive` = 1, 
+                                       `Negative` = 0)) 
+  
+
+head(data, 3)
+```
+
+
+## Task 1.4
+```{r eval=FALSE, echo=TRUE}
+
+  require(quanteda)
+  require(quanteda.textstats)
+  require(udpipe)
+  require(reticulate)
+
+  virtualenv_list()
+
+  reticulate::import('torch')
+  reticulate::import('numpy')
+  reticulate::import('transformers')
+  reticulate::import('nltk')
+  reticulate::import('tokenizers')
+  require(text)
+#------
+word_embeds <- vector('list',nrow(data))
+ 
+ for(i in 1:nrow(data)){
+   
+   # Assign the text to analyze
+      text <- data[i,]$tweet
+   
+    word_embeds[i]  <- textEmbed(x = text,
+                      model = 'roberta-base',
+                      layers = 12)
+   
+   }
+
+```
+
+
+## Task 1.5
+```{r}
+# Creating dataframe
+data <- data %>% 
+  mutate(id_col = 1:nrow(data))
+
+#View(iter)
+iter <- data.frame(matrix(unlist(word_embeds), nrow=length(word_embeds), byrow=TRUE))
+
+#Get dim names
+# Creating vector of dim names
+y <- textEmbed(x = data$tweet[1],
+            model = 'roberta-base',
+                  layers = 12)
+y <- y[["x"]]
+y <- names(y)
+
+#Change column names of iter
+colnames(iter) <-  y 
+
+iter <- iter %>% 
+  mutate(id_col = 1:nrow(data))
+
+data_merge <- inner_join(data, iter, by = "id_col")
+names(data_merge)
+
+# Removing unnecessary columns
+data_tweet <- data_merge %>% 
+  select(-c(time, tweet, id_col)) %>% 
+  mutate( date = as.numeric(date),
+          hour = as.numeric(hour))
+
+str(data_tweet)
+```
+
+## Task 1.6
+
+```{r}
+outcome <- c('sentiment')
+categorical <- c('month')
+numeric <- y
+cyclic <- c('day', 'date', 'hour')
+
+blueprint <- recipe(
+  x = data_tweet,
+  vars = c(outcome, categorical, cyclic, numeric),
+  roles =  c('outcome', rep('predictor', 772))) %>% 
+    step_harmonic(day, cycle_size = 1, frequency = 1/7) %>% 
+    step_harmonic(date, cycle_size = 1, frequency = 1/31) %>% 
+    step_harmonic(hour, cycle_size = 1, frequency = 1/24)%>% 
+    step_dummy(all_of(categorical),one_hot=TRUE) %>% 
+    step_normalize(all_of(numeric))
+
+blueprint
+
+prepare <- prep(blueprint, training = data_tweet)
+prepare
+```
+
+
+## Task 1.7
+```{r}
+baked_data <- bake(prepare, new_data = data_tweet)
+baked_data
+```
+
+## Task 1.8
+```{r}
+# This code can be used to do task 1.8 
+ baked_data <- baked_data %>% 
+   select(-c(day, date, hour))
+names(baked_data)
+#As you can see above, baked_data does
+```
+
+## Task 1.9
+```{r eval=FALSE, echo=TRUE}
+rio::export(baked_data, file = "Vader_HWK1_Task1Data.csv")
+```
+
+
+# Part 2: Preprocessing Continuous and Categorical Variables
+
+```{r eval=TRUE, echo=FALSE}
+load("~/Desktop/EDLD 654/HW 1/Text Analysis HW 1/Task2.RData")
+```
+
+## Task 2.1, 2.2
+```{r}
+# Task 2.1
+data_edu <- rio::import("https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/oregon.csv") %>% 
+           characterize() %>% 
+           clean_names() %>% 
+#Task 2.2
+  mutate(month = as.numeric(unglue_vec(tst_dt, "{x}/{y}/{z}", var = "x")), 
+         date = as.numeric(unglue_vec(tst_dt, "{x}/{y}/{z}", var = "y"))) %>%
+  select(-tst_dt) 
+
+data_edu %>% count(date) %>% knitr::kable()
+
+data_edu %>% count(month) %>% knitr::kable()
+
+```
+
+## Task 2.3
+```{r}
+d <- ff_glimpse(data_edu)
+d %>% knitr::kable()
+
+cat_var <- d[["Categorical"]] %>% 
+  filter(missing_percent > 75) %>% 
+  select(label)
+cat_var
+
+cont_var <- d[["Continuous"]] %>% 
+  filter(missing_percent > 75) %>% 
+  select(label)
+cont_var
+
+#None of the continuous variables are missing more than 75% data
+ 
+data_edu <- data_edu %>% 
+  select(-c(paste(cat_var)))
+```
+
+## Task 2.4
+```{r}
+all_CatVar <- rownames(ff_glimpse(data_edu)$Categorical) 
+
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., table) %>% 
+  knitr::kable()
+
+#Notes for Vader - Figure out how to extract variable from a list with a certain level
+
+
+#trgt_assist_fg variable has Yes coded as both ‘y’ and ‘Y’. Lets fix this.
+data_edu <- data_edu %>% 
+  mutate(trgt_assist_fg = recode(trgt_assist_fg, "y" = "Y"))
+
+#Check
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., table)%>% 
+  knitr::kable()
+
+# check the distribution of numeric variables and make sure there is no anomaly.
+
+data_edu %>% 
+  select_if(is.numeric) %>% 
+  select(-id, -date, -month) %>% 
+  gather() %>%                            
+  ggplot(aes(value)) +                     # Plot the values
+    facet_wrap(~ key, scales = "free") +   # In separate panels
+    geom_density()   
+
+#Ask Cengiz about this 
+```
+
+
+## Task 2.5
+```{r}
+#Make sure the type of all categorical variables are either character or factor.
+data_edu %>% 
+  select(c(paste(all_CatVar))) %>% 
+  map(., typeof)
+
+
+# List of variable types
+  
+  outcome <- c('score') 
+  
+  id      <- c('id') #id
+  
+  categorical <- c('sex', 'ethnic_cd', 'tst_bnch', 'migrant_ed_fg',  'ind_ed_fg', 'sp_ed_fg', 'tag_ed_fg', 'econ_dsvntg', 'stay_in_dist', 'stay_in_schl', 'dist_sped', 'trgt_assist_fg', 'ayp_dist_partic', 'ayp_schl_partic', 'ayp_dist_prfrm', 'ayp_schl_prfrm', 'rc_dist_partic', 'rc_schl_partic', 'rc_dist_prfrm', 'rc_schl_prfrm', 'grp_rpt_dist_partic', 'grp_rpt_schl_partic', 'grp_rpt_dist_prfrm', 'grp_rpt_schl_prfrm') 
+  
+  cyclic <- c('date', 'month')
+  
+  numeric   <- c('enrl_grd')
+
+  
+blueprint <- recipe(
+  x = data_edu ,
+  vars = c(outcome, categorical, cyclic, numeric, id),
+  roles =  c('outcome', rep('predictor', 27), 'ID')) %>% 
+  
+    ### for all 27 predictors, create an indicator variable for missingness
+  step_indicate_na(all_of(categorical),all_of(numeric)) %>%
+  
+  
+  ### Remove the numeric variable with zero variance
+  step_zv(all_of(numeric)) %>%
+  
+  
+  ### Impute the missing values using mean numeric predictors, mode for categorical predictors
+  
+  step_impute_mean(all_of(numeric)) %>%
+  step_impute_mode(all_of(categorical)) %>%
+  
+  
+ ### recode cyclic predictors - date and month - into two new variables of sin and cos terms,
+   step_harmonic(date, cycle_size = 1, frequency = 1/31) %>% 
+   step_harmonic(month, cycle_size = 1, frequency = 1/12)%>%
+
+###expand numeric predictors using using natural splines with three degrees of freedom and standardize,
+  
+# Natural splines for numeric variables 
+  
+  step_ns(all_of(numeric), deg_free=3) %>%
+  
+  # Standardize the natural splines of numeric variables 
+  
+  step_normalize(paste0(numeric,'_ns_1'),
+                 paste0(numeric,'_ns_2'),
+                 paste0(numeric,'_ns_3')) %>% 
+
+###recode categorical predictors into dummy variables using one-hot encoding.
+
+    step_dummy(all_of(categorical),one_hot=TRUE)
+
+blueprint
+
+prepare <- prep(blueprint, training = data_edu)
+prepare
+```
+
+
+## Task 2.6
+
+```{r}
+baked_data_edu <- bake(prepare, new_data = data_edu)
+baked_data_edu
+```
+
+
+## Task 2.7
+```{r}
+baked_data_edu <- baked_data_edu %>% 
+  select(-c(date, month))
+```
+
+
+## Task 2.8
+```{r eval=FALSE, echo=TRUE}
+rio::export(baked_data_edu, file = "Vader_HWK1_Task2Data.csv")
+```
+

@@ -172,47 +172,38 @@ pre code {
 </div>
 
 
-<pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
-<pre><code>## ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
-## ✓ tibble  3.1.4     ✓ dplyr   1.0.7
-## ✓ tidyr   1.1.3     ✓ stringr 1.4.0
-## ✓ readr   2.0.1     ✓ forcats 0.5.1</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(rio)
-library(janitor)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;janitor&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     chisq.test, fisher.test</code></pre>
-<pre class="r"><code>library(stringr)</code></pre>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<style type="text/css">
+pre {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 100px;
+}
+</style>
+<pre class="r"><code>library(tidyverse)
+library(rio)
+library(janitor)
+library(stringr)
+library(purrr)
+library(unglue)
+library(finalfit)
+#devtools::install_github(&quot;tidymodels/recipes&quot;)
+require(recipes)</code></pre>
+</div>
 <div id="part-1-preprocessing-text-data" class="section level1">
 <h1>Part 1: Preprocessing Text Data</h1>
-<div id="task-1.1" class="section level2">
-<h2>Task 1.1</h2>
-<pre class="r"><code>data &lt;- import(&quot;https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/tweet_sub.csv&quot;, setclass = &quot;tb_df&quot;) %&gt;% 
+<div id="task-1.1-1.2-1.3" class="section level2">
+<h2>Task 1.1, 1.2, 1.3</h2>
+<pre class="r"><code>#Task 1.1
+data &lt;- rio::import(&quot;https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/tweet_sub.csv&quot;) %&gt;% 
            characterize() %&gt;% 
-           clean_names()
-  
-names(data)</code></pre>
-<pre><code>## [1] &quot;sentiment&quot; &quot;time&quot;      &quot;tweet&quot;</code></pre>
-<pre class="r"><code>head(data, 3)</code></pre>
-<pre><code>##   sentiment                         time
-## 1  Negative Thu Jun 18 07:35:01 PDT 2009
-## 2  Positive Sun May 10 00:31:52 PDT 2009
-## 3  Positive Sun May 31 09:15:19 PDT 2009
-##                                                                                                                     tweet
-## 1                                                                         I think my twitter is attackd by a kind of worm
-## 2 @ddlovato demi if you can i think itd be amazing if you covered thats what you get by paramore haha im sure you know it
-## 3                                      had so much fun yesterday hopes they play at the md agian  hhmmm what to do today?</code></pre>
-</div>
-<div id="task-1.2" class="section level2">
-<h2>Task 1.2</h2>
-<pre class="r"><code>data1 &lt;- data %&gt;% 
-  mutate(day = word(time, 1),
+           clean_names() %&gt;% 
+#Task 1.2
+mutate(day = word(time, 1),
          month = word(time, 2),
          date = word(time, 3), 
          hour = str_sub(word(time, 4), start = 2L, end = 2L)) %&gt;% 
@@ -222,125 +213,1209 @@ names(data)</code></pre>
                            `Thu` = 4,
                            `Fri` = 5, 
                            `Sat` = 6, 
-                           `Sun` = 7))# %&gt;% 
- # head()</code></pre>
-</div>
-<div id="task-1.3" class="section level2">
-<h2>Task 1.3</h2>
-<pre class="r"><code>data2 &lt;- data1 %&gt;% 
-  mutate(sentiment = recode(sentiment, `Positive` = 1, 
-                                       `Negative` = 0))</code></pre>
+                           `Sun` = 7)) %&gt;% 
+#Task 1.3
+    mutate(sentiment = recode(sentiment, `Positive` = 1, 
+                                       `Negative` = 0)) 
+  
+
+head(data, 3)</code></pre>
+<pre><code>##   sentiment                         time
+## 1         0 Thu Jun 18 07:35:01 PDT 2009
+## 2         1 Sun May 10 00:31:52 PDT 2009
+## 3         1 Sun May 31 09:15:19 PDT 2009
+##                                                                                                                     tweet
+## 1                                                                         I think my twitter is attackd by a kind of worm
+## 2 @ddlovato demi if you can i think itd be amazing if you covered thats what you get by paramore haha im sure you know it
+## 3                                      had so much fun yesterday hopes they play at the md agian  hhmmm what to do today?
+##   day month date hour
+## 1   4   Jun   18    7
+## 2   7   May   10    0
+## 3   7   May   31    9</code></pre>
 </div>
 <div id="task-1.4" class="section level2">
 <h2>Task 1.4</h2>
-<pre class="r"><code>#Python packages
-library(reticulate)</code></pre>
-<pre><code>## 
-## Attaching package: &#39;reticulate&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:rio&#39;:
-## 
-##     import</code></pre>
-<pre class="r"><code>#conda_install(envname = &#39;r-reticulate&#39;,packages=&#39;tokenizers&#39;,pip=TRUE)
-map(c(&#39;torch&#39;, &#39;numpy&#39;, &#39;transformers&#39;, &#39;nltk&#39;, &#39;tokenizers&#39;), import)</code></pre>
-<pre><code>## [[1]]
-## Module(torch)
-## 
-## [[2]]
-## Module(numpy)
-## 
-## [[3]]
-## Module(transformers)
-## 
-## [[4]]
-## Module(nltk)
-## 
-## [[5]]
-## Module(tokenizers)</code></pre>
-<pre class="r"><code>library(text)</code></pre>
-<pre><code>## Registered S3 method overwritten by &#39;tune&#39;:
-##   method                   from   
-##   required_pkgs.model_spec parsnip</code></pre>
-<pre><code>## [0;34mThis is text (version 0.9.10). 
-## [0m[0;32mText is new and still rapidly improving. 
-## Newer versions may have improved functions and updated defaults to reflect current understandings of the state-of-the-art. 
-## Please send us feedback based on your experience.[0m</code></pre>
-<pre class="r"><code>textEmbed(x= data2$tweet[1],
-             model = &#39;roberta-base&#39;,
-             layers = 1)</code></pre>
-<pre><code>## $x
-## # A tibble: 1 × 768
-##       Dim1   Dim2  Dim3  Dim4  Dim5   Dim6   Dim7    Dim8     Dim9  Dim10  Dim11
-##      &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
-## 1 -0.00313 -0.144 0.116 0.173 0.350 -0.101 0.0484 -0.0293 -0.00736 -0.418 -0.262
-## # … with 757 more variables: Dim12 &lt;dbl&gt;, Dim13 &lt;dbl&gt;, Dim14 &lt;dbl&gt;,
-## #   Dim15 &lt;dbl&gt;, Dim16 &lt;dbl&gt;, Dim17 &lt;dbl&gt;, Dim18 &lt;dbl&gt;, Dim19 &lt;dbl&gt;,
-## #   Dim20 &lt;dbl&gt;, Dim21 &lt;dbl&gt;, Dim22 &lt;dbl&gt;, Dim23 &lt;dbl&gt;, Dim24 &lt;dbl&gt;,
-## #   Dim25 &lt;dbl&gt;, Dim26 &lt;dbl&gt;, Dim27 &lt;dbl&gt;, Dim28 &lt;dbl&gt;, Dim29 &lt;dbl&gt;,
-## #   Dim30 &lt;dbl&gt;, Dim31 &lt;dbl&gt;, Dim32 &lt;dbl&gt;, Dim33 &lt;dbl&gt;, Dim34 &lt;dbl&gt;,
-## #   Dim35 &lt;dbl&gt;, Dim36 &lt;dbl&gt;, Dim37 &lt;dbl&gt;, Dim38 &lt;dbl&gt;, Dim39 &lt;dbl&gt;,
-## #   Dim40 &lt;dbl&gt;, Dim41 &lt;dbl&gt;, Dim42 &lt;dbl&gt;, Dim43 &lt;dbl&gt;, Dim44 &lt;dbl&gt;, …
-## 
-## $singlewords_we
-## # A tibble: 11 × 770
-##    words       n    Dim1    Dim2    Dim3    Dim4  Dim5    Dim6   Dim7     Dim8
-##    &lt;chr&gt;   &lt;int&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;
-##  1 a           1  0.124  -0.176  0.108   -0.134  0.394 -0.0366 0.234  -0.135  
-##  2 attackd     1 -0.117  -0.0204 0.0587   0.275  0.296 -0.134  0.0740 -0.183  
-##  3 by          1 -0.114   0.185  0.0272   0.337  0.551 -0.516  0.289  -0.354  
-##  4 i           1  0.168  -0.106  0.141   -0.0989 0.271 -0.346  0.233   0.00998
-##  5 is          1 -0.130  -0.0412 0.110    0.180  0.334 -0.425  0.335  -0.00267
-##  6 kind        1 -0.0848  0.0939 0.151   -0.0855 0.242 -0.309  0.152  -0.205  
-##  7 my          1 -0.112   0.197  0.0420   0.221  0.448 -0.307  0.165   0.0197 
-##  8 of          1 -0.159  -0.147  0.163   -0.189  0.325 -0.187  0.258  -0.298  
-##  9 think       1 -0.0725 -0.0945 0.0886   0.270  0.313 -0.499  0.312  -0.161  
-## 10 twitter     1 -0.177  -0.335  0.237    0.123  0.670 -0.488  0.363  -0.0927 
-## 11 worm        1 -0.297  -0.0163 0.00399  0.171  0.840 -0.0840 0.0534 -0.0338 
-## # … with 760 more variables: Dim9 &lt;dbl&gt;, Dim10 &lt;dbl&gt;, Dim11 &lt;dbl&gt;, Dim12 &lt;dbl&gt;,
-## #   Dim13 &lt;dbl&gt;, Dim14 &lt;dbl&gt;, Dim15 &lt;dbl&gt;, Dim16 &lt;dbl&gt;, Dim17 &lt;dbl&gt;,
-## #   Dim18 &lt;dbl&gt;, Dim19 &lt;dbl&gt;, Dim20 &lt;dbl&gt;, Dim21 &lt;dbl&gt;, Dim22 &lt;dbl&gt;,
-## #   Dim23 &lt;dbl&gt;, Dim24 &lt;dbl&gt;, Dim25 &lt;dbl&gt;, Dim26 &lt;dbl&gt;, Dim27 &lt;dbl&gt;,
-## #   Dim28 &lt;dbl&gt;, Dim29 &lt;dbl&gt;, Dim30 &lt;dbl&gt;, Dim31 &lt;dbl&gt;, Dim32 &lt;dbl&gt;,
-## #   Dim33 &lt;dbl&gt;, Dim34 &lt;dbl&gt;, Dim35 &lt;dbl&gt;, Dim36 &lt;dbl&gt;, Dim37 &lt;dbl&gt;,
-## #   Dim38 &lt;dbl&gt;, Dim39 &lt;dbl&gt;, Dim40 &lt;dbl&gt;, Dim41 &lt;dbl&gt;, Dim42 &lt;dbl&gt;, …</code></pre>
+<pre class="r"><code>  require(quanteda)
+  require(quanteda.textstats)
+  require(udpipe)
+  require(reticulate)
+
+  virtualenv_list()</code></pre>
+<pre><code>## [1] &quot;my.python&quot;</code></pre>
+<pre class="r"><code>  reticulate::import(&#39;torch&#39;)</code></pre>
+<pre><code>## Module(torch)</code></pre>
+<pre class="r"><code>  reticulate::import(&#39;numpy&#39;)</code></pre>
+<pre><code>## Module(numpy)</code></pre>
+<pre class="r"><code>  reticulate::import(&#39;transformers&#39;)</code></pre>
+<pre><code>## Module(transformers)</code></pre>
+<pre class="r"><code>  reticulate::import(&#39;nltk&#39;)</code></pre>
+<pre><code>## Module(nltk)</code></pre>
+<pre class="r"><code>  reticulate::import(&#39;tokenizers&#39;)</code></pre>
+<pre><code>## Module(tokenizers)</code></pre>
+<pre class="r"><code>  require(text)</code></pre>
+<pre class="r"><code>word_embeds &lt;- vector(&#39;list&#39;,nrow(data))
+ 
+ for(i in 1:nrow(data)){
+   
+   # Assign the text to analyze
+      text &lt;- data[i,]$tweet
+   
+    word_embeds[i]  &lt;- textEmbed(x = text,
+                      model = &#39;roberta-base&#39;,
+                      layers = 12)
+   
+   }</code></pre>
 </div>
 <div id="task-1.5" class="section level2">
 <h2>Task 1.5</h2>
+<pre class="r"><code># Creating dataframe
+data &lt;- data %&gt;% 
+  mutate(id_col = 1:nrow(data))
+
+#View(iter)
+iter &lt;- data.frame(matrix(unlist(word_embeds), nrow=length(word_embeds), byrow=TRUE))
+
+#Get dim names
+# Creating vector of dim names
+y &lt;- textEmbed(x = data$tweet[1],
+            model = &#39;roberta-base&#39;,
+                  layers = 12)
+y &lt;- y[[&quot;x&quot;]]
+y &lt;- names(y)
+
+#Change column names of iter
+colnames(iter) &lt;-  y 
+
+iter &lt;- iter %&gt;% 
+  mutate(id_col = 1:nrow(data))
+
+data_merge &lt;- inner_join(data, iter, by = &quot;id_col&quot;)
+names(data_merge)</code></pre>
+<pre><code>##   [1] &quot;sentiment&quot; &quot;time&quot;      &quot;tweet&quot;     &quot;day&quot;       &quot;month&quot;     &quot;date&quot;     
+##   [7] &quot;hour&quot;      &quot;id_col&quot;    &quot;Dim1&quot;      &quot;Dim2&quot;      &quot;Dim3&quot;      &quot;Dim4&quot;     
+##  [13] &quot;Dim5&quot;      &quot;Dim6&quot;      &quot;Dim7&quot;      &quot;Dim8&quot;      &quot;Dim9&quot;      &quot;Dim10&quot;    
+##  [19] &quot;Dim11&quot;     &quot;Dim12&quot;     &quot;Dim13&quot;     &quot;Dim14&quot;     &quot;Dim15&quot;     &quot;Dim16&quot;    
+##  [25] &quot;Dim17&quot;     &quot;Dim18&quot;     &quot;Dim19&quot;     &quot;Dim20&quot;     &quot;Dim21&quot;     &quot;Dim22&quot;    
+##  [31] &quot;Dim23&quot;     &quot;Dim24&quot;     &quot;Dim25&quot;     &quot;Dim26&quot;     &quot;Dim27&quot;     &quot;Dim28&quot;    
+##  [37] &quot;Dim29&quot;     &quot;Dim30&quot;     &quot;Dim31&quot;     &quot;Dim32&quot;     &quot;Dim33&quot;     &quot;Dim34&quot;    
+##  [43] &quot;Dim35&quot;     &quot;Dim36&quot;     &quot;Dim37&quot;     &quot;Dim38&quot;     &quot;Dim39&quot;     &quot;Dim40&quot;    
+##  [49] &quot;Dim41&quot;     &quot;Dim42&quot;     &quot;Dim43&quot;     &quot;Dim44&quot;     &quot;Dim45&quot;     &quot;Dim46&quot;    
+##  [55] &quot;Dim47&quot;     &quot;Dim48&quot;     &quot;Dim49&quot;     &quot;Dim50&quot;     &quot;Dim51&quot;     &quot;Dim52&quot;    
+##  [61] &quot;Dim53&quot;     &quot;Dim54&quot;     &quot;Dim55&quot;     &quot;Dim56&quot;     &quot;Dim57&quot;     &quot;Dim58&quot;    
+##  [67] &quot;Dim59&quot;     &quot;Dim60&quot;     &quot;Dim61&quot;     &quot;Dim62&quot;     &quot;Dim63&quot;     &quot;Dim64&quot;    
+##  [73] &quot;Dim65&quot;     &quot;Dim66&quot;     &quot;Dim67&quot;     &quot;Dim68&quot;     &quot;Dim69&quot;     &quot;Dim70&quot;    
+##  [79] &quot;Dim71&quot;     &quot;Dim72&quot;     &quot;Dim73&quot;     &quot;Dim74&quot;     &quot;Dim75&quot;     &quot;Dim76&quot;    
+##  [85] &quot;Dim77&quot;     &quot;Dim78&quot;     &quot;Dim79&quot;     &quot;Dim80&quot;     &quot;Dim81&quot;     &quot;Dim82&quot;    
+##  [91] &quot;Dim83&quot;     &quot;Dim84&quot;     &quot;Dim85&quot;     &quot;Dim86&quot;     &quot;Dim87&quot;     &quot;Dim88&quot;    
+##  [97] &quot;Dim89&quot;     &quot;Dim90&quot;     &quot;Dim91&quot;     &quot;Dim92&quot;     &quot;Dim93&quot;     &quot;Dim94&quot;    
+## [103] &quot;Dim95&quot;     &quot;Dim96&quot;     &quot;Dim97&quot;     &quot;Dim98&quot;     &quot;Dim99&quot;     &quot;Dim100&quot;   
+## [109] &quot;Dim101&quot;    &quot;Dim102&quot;    &quot;Dim103&quot;    &quot;Dim104&quot;    &quot;Dim105&quot;    &quot;Dim106&quot;   
+## [115] &quot;Dim107&quot;    &quot;Dim108&quot;    &quot;Dim109&quot;    &quot;Dim110&quot;    &quot;Dim111&quot;    &quot;Dim112&quot;   
+## [121] &quot;Dim113&quot;    &quot;Dim114&quot;    &quot;Dim115&quot;    &quot;Dim116&quot;    &quot;Dim117&quot;    &quot;Dim118&quot;   
+## [127] &quot;Dim119&quot;    &quot;Dim120&quot;    &quot;Dim121&quot;    &quot;Dim122&quot;    &quot;Dim123&quot;    &quot;Dim124&quot;   
+## [133] &quot;Dim125&quot;    &quot;Dim126&quot;    &quot;Dim127&quot;    &quot;Dim128&quot;    &quot;Dim129&quot;    &quot;Dim130&quot;   
+## [139] &quot;Dim131&quot;    &quot;Dim132&quot;    &quot;Dim133&quot;    &quot;Dim134&quot;    &quot;Dim135&quot;    &quot;Dim136&quot;   
+## [145] &quot;Dim137&quot;    &quot;Dim138&quot;    &quot;Dim139&quot;    &quot;Dim140&quot;    &quot;Dim141&quot;    &quot;Dim142&quot;   
+## [151] &quot;Dim143&quot;    &quot;Dim144&quot;    &quot;Dim145&quot;    &quot;Dim146&quot;    &quot;Dim147&quot;    &quot;Dim148&quot;   
+## [157] &quot;Dim149&quot;    &quot;Dim150&quot;    &quot;Dim151&quot;    &quot;Dim152&quot;    &quot;Dim153&quot;    &quot;Dim154&quot;   
+## [163] &quot;Dim155&quot;    &quot;Dim156&quot;    &quot;Dim157&quot;    &quot;Dim158&quot;    &quot;Dim159&quot;    &quot;Dim160&quot;   
+## [169] &quot;Dim161&quot;    &quot;Dim162&quot;    &quot;Dim163&quot;    &quot;Dim164&quot;    &quot;Dim165&quot;    &quot;Dim166&quot;   
+## [175] &quot;Dim167&quot;    &quot;Dim168&quot;    &quot;Dim169&quot;    &quot;Dim170&quot;    &quot;Dim171&quot;    &quot;Dim172&quot;   
+## [181] &quot;Dim173&quot;    &quot;Dim174&quot;    &quot;Dim175&quot;    &quot;Dim176&quot;    &quot;Dim177&quot;    &quot;Dim178&quot;   
+## [187] &quot;Dim179&quot;    &quot;Dim180&quot;    &quot;Dim181&quot;    &quot;Dim182&quot;    &quot;Dim183&quot;    &quot;Dim184&quot;   
+## [193] &quot;Dim185&quot;    &quot;Dim186&quot;    &quot;Dim187&quot;    &quot;Dim188&quot;    &quot;Dim189&quot;    &quot;Dim190&quot;   
+## [199] &quot;Dim191&quot;    &quot;Dim192&quot;    &quot;Dim193&quot;    &quot;Dim194&quot;    &quot;Dim195&quot;    &quot;Dim196&quot;   
+## [205] &quot;Dim197&quot;    &quot;Dim198&quot;    &quot;Dim199&quot;    &quot;Dim200&quot;    &quot;Dim201&quot;    &quot;Dim202&quot;   
+## [211] &quot;Dim203&quot;    &quot;Dim204&quot;    &quot;Dim205&quot;    &quot;Dim206&quot;    &quot;Dim207&quot;    &quot;Dim208&quot;   
+## [217] &quot;Dim209&quot;    &quot;Dim210&quot;    &quot;Dim211&quot;    &quot;Dim212&quot;    &quot;Dim213&quot;    &quot;Dim214&quot;   
+## [223] &quot;Dim215&quot;    &quot;Dim216&quot;    &quot;Dim217&quot;    &quot;Dim218&quot;    &quot;Dim219&quot;    &quot;Dim220&quot;   
+## [229] &quot;Dim221&quot;    &quot;Dim222&quot;    &quot;Dim223&quot;    &quot;Dim224&quot;    &quot;Dim225&quot;    &quot;Dim226&quot;   
+## [235] &quot;Dim227&quot;    &quot;Dim228&quot;    &quot;Dim229&quot;    &quot;Dim230&quot;    &quot;Dim231&quot;    &quot;Dim232&quot;   
+## [241] &quot;Dim233&quot;    &quot;Dim234&quot;    &quot;Dim235&quot;    &quot;Dim236&quot;    &quot;Dim237&quot;    &quot;Dim238&quot;   
+## [247] &quot;Dim239&quot;    &quot;Dim240&quot;    &quot;Dim241&quot;    &quot;Dim242&quot;    &quot;Dim243&quot;    &quot;Dim244&quot;   
+## [253] &quot;Dim245&quot;    &quot;Dim246&quot;    &quot;Dim247&quot;    &quot;Dim248&quot;    &quot;Dim249&quot;    &quot;Dim250&quot;   
+## [259] &quot;Dim251&quot;    &quot;Dim252&quot;    &quot;Dim253&quot;    &quot;Dim254&quot;    &quot;Dim255&quot;    &quot;Dim256&quot;   
+## [265] &quot;Dim257&quot;    &quot;Dim258&quot;    &quot;Dim259&quot;    &quot;Dim260&quot;    &quot;Dim261&quot;    &quot;Dim262&quot;   
+## [271] &quot;Dim263&quot;    &quot;Dim264&quot;    &quot;Dim265&quot;    &quot;Dim266&quot;    &quot;Dim267&quot;    &quot;Dim268&quot;   
+## [277] &quot;Dim269&quot;    &quot;Dim270&quot;    &quot;Dim271&quot;    &quot;Dim272&quot;    &quot;Dim273&quot;    &quot;Dim274&quot;   
+## [283] &quot;Dim275&quot;    &quot;Dim276&quot;    &quot;Dim277&quot;    &quot;Dim278&quot;    &quot;Dim279&quot;    &quot;Dim280&quot;   
+## [289] &quot;Dim281&quot;    &quot;Dim282&quot;    &quot;Dim283&quot;    &quot;Dim284&quot;    &quot;Dim285&quot;    &quot;Dim286&quot;   
+## [295] &quot;Dim287&quot;    &quot;Dim288&quot;    &quot;Dim289&quot;    &quot;Dim290&quot;    &quot;Dim291&quot;    &quot;Dim292&quot;   
+## [301] &quot;Dim293&quot;    &quot;Dim294&quot;    &quot;Dim295&quot;    &quot;Dim296&quot;    &quot;Dim297&quot;    &quot;Dim298&quot;   
+## [307] &quot;Dim299&quot;    &quot;Dim300&quot;    &quot;Dim301&quot;    &quot;Dim302&quot;    &quot;Dim303&quot;    &quot;Dim304&quot;   
+## [313] &quot;Dim305&quot;    &quot;Dim306&quot;    &quot;Dim307&quot;    &quot;Dim308&quot;    &quot;Dim309&quot;    &quot;Dim310&quot;   
+## [319] &quot;Dim311&quot;    &quot;Dim312&quot;    &quot;Dim313&quot;    &quot;Dim314&quot;    &quot;Dim315&quot;    &quot;Dim316&quot;   
+## [325] &quot;Dim317&quot;    &quot;Dim318&quot;    &quot;Dim319&quot;    &quot;Dim320&quot;    &quot;Dim321&quot;    &quot;Dim322&quot;   
+## [331] &quot;Dim323&quot;    &quot;Dim324&quot;    &quot;Dim325&quot;    &quot;Dim326&quot;    &quot;Dim327&quot;    &quot;Dim328&quot;   
+## [337] &quot;Dim329&quot;    &quot;Dim330&quot;    &quot;Dim331&quot;    &quot;Dim332&quot;    &quot;Dim333&quot;    &quot;Dim334&quot;   
+## [343] &quot;Dim335&quot;    &quot;Dim336&quot;    &quot;Dim337&quot;    &quot;Dim338&quot;    &quot;Dim339&quot;    &quot;Dim340&quot;   
+## [349] &quot;Dim341&quot;    &quot;Dim342&quot;    &quot;Dim343&quot;    &quot;Dim344&quot;    &quot;Dim345&quot;    &quot;Dim346&quot;   
+## [355] &quot;Dim347&quot;    &quot;Dim348&quot;    &quot;Dim349&quot;    &quot;Dim350&quot;    &quot;Dim351&quot;    &quot;Dim352&quot;   
+## [361] &quot;Dim353&quot;    &quot;Dim354&quot;    &quot;Dim355&quot;    &quot;Dim356&quot;    &quot;Dim357&quot;    &quot;Dim358&quot;   
+## [367] &quot;Dim359&quot;    &quot;Dim360&quot;    &quot;Dim361&quot;    &quot;Dim362&quot;    &quot;Dim363&quot;    &quot;Dim364&quot;   
+## [373] &quot;Dim365&quot;    &quot;Dim366&quot;    &quot;Dim367&quot;    &quot;Dim368&quot;    &quot;Dim369&quot;    &quot;Dim370&quot;   
+## [379] &quot;Dim371&quot;    &quot;Dim372&quot;    &quot;Dim373&quot;    &quot;Dim374&quot;    &quot;Dim375&quot;    &quot;Dim376&quot;   
+## [385] &quot;Dim377&quot;    &quot;Dim378&quot;    &quot;Dim379&quot;    &quot;Dim380&quot;    &quot;Dim381&quot;    &quot;Dim382&quot;   
+## [391] &quot;Dim383&quot;    &quot;Dim384&quot;    &quot;Dim385&quot;    &quot;Dim386&quot;    &quot;Dim387&quot;    &quot;Dim388&quot;   
+## [397] &quot;Dim389&quot;    &quot;Dim390&quot;    &quot;Dim391&quot;    &quot;Dim392&quot;    &quot;Dim393&quot;    &quot;Dim394&quot;   
+## [403] &quot;Dim395&quot;    &quot;Dim396&quot;    &quot;Dim397&quot;    &quot;Dim398&quot;    &quot;Dim399&quot;    &quot;Dim400&quot;   
+## [409] &quot;Dim401&quot;    &quot;Dim402&quot;    &quot;Dim403&quot;    &quot;Dim404&quot;    &quot;Dim405&quot;    &quot;Dim406&quot;   
+## [415] &quot;Dim407&quot;    &quot;Dim408&quot;    &quot;Dim409&quot;    &quot;Dim410&quot;    &quot;Dim411&quot;    &quot;Dim412&quot;   
+## [421] &quot;Dim413&quot;    &quot;Dim414&quot;    &quot;Dim415&quot;    &quot;Dim416&quot;    &quot;Dim417&quot;    &quot;Dim418&quot;   
+## [427] &quot;Dim419&quot;    &quot;Dim420&quot;    &quot;Dim421&quot;    &quot;Dim422&quot;    &quot;Dim423&quot;    &quot;Dim424&quot;   
+## [433] &quot;Dim425&quot;    &quot;Dim426&quot;    &quot;Dim427&quot;    &quot;Dim428&quot;    &quot;Dim429&quot;    &quot;Dim430&quot;   
+## [439] &quot;Dim431&quot;    &quot;Dim432&quot;    &quot;Dim433&quot;    &quot;Dim434&quot;    &quot;Dim435&quot;    &quot;Dim436&quot;   
+## [445] &quot;Dim437&quot;    &quot;Dim438&quot;    &quot;Dim439&quot;    &quot;Dim440&quot;    &quot;Dim441&quot;    &quot;Dim442&quot;   
+## [451] &quot;Dim443&quot;    &quot;Dim444&quot;    &quot;Dim445&quot;    &quot;Dim446&quot;    &quot;Dim447&quot;    &quot;Dim448&quot;   
+## [457] &quot;Dim449&quot;    &quot;Dim450&quot;    &quot;Dim451&quot;    &quot;Dim452&quot;    &quot;Dim453&quot;    &quot;Dim454&quot;   
+## [463] &quot;Dim455&quot;    &quot;Dim456&quot;    &quot;Dim457&quot;    &quot;Dim458&quot;    &quot;Dim459&quot;    &quot;Dim460&quot;   
+## [469] &quot;Dim461&quot;    &quot;Dim462&quot;    &quot;Dim463&quot;    &quot;Dim464&quot;    &quot;Dim465&quot;    &quot;Dim466&quot;   
+## [475] &quot;Dim467&quot;    &quot;Dim468&quot;    &quot;Dim469&quot;    &quot;Dim470&quot;    &quot;Dim471&quot;    &quot;Dim472&quot;   
+## [481] &quot;Dim473&quot;    &quot;Dim474&quot;    &quot;Dim475&quot;    &quot;Dim476&quot;    &quot;Dim477&quot;    &quot;Dim478&quot;   
+## [487] &quot;Dim479&quot;    &quot;Dim480&quot;    &quot;Dim481&quot;    &quot;Dim482&quot;    &quot;Dim483&quot;    &quot;Dim484&quot;   
+## [493] &quot;Dim485&quot;    &quot;Dim486&quot;    &quot;Dim487&quot;    &quot;Dim488&quot;    &quot;Dim489&quot;    &quot;Dim490&quot;   
+## [499] &quot;Dim491&quot;    &quot;Dim492&quot;    &quot;Dim493&quot;    &quot;Dim494&quot;    &quot;Dim495&quot;    &quot;Dim496&quot;   
+## [505] &quot;Dim497&quot;    &quot;Dim498&quot;    &quot;Dim499&quot;    &quot;Dim500&quot;    &quot;Dim501&quot;    &quot;Dim502&quot;   
+## [511] &quot;Dim503&quot;    &quot;Dim504&quot;    &quot;Dim505&quot;    &quot;Dim506&quot;    &quot;Dim507&quot;    &quot;Dim508&quot;   
+## [517] &quot;Dim509&quot;    &quot;Dim510&quot;    &quot;Dim511&quot;    &quot;Dim512&quot;    &quot;Dim513&quot;    &quot;Dim514&quot;   
+## [523] &quot;Dim515&quot;    &quot;Dim516&quot;    &quot;Dim517&quot;    &quot;Dim518&quot;    &quot;Dim519&quot;    &quot;Dim520&quot;   
+## [529] &quot;Dim521&quot;    &quot;Dim522&quot;    &quot;Dim523&quot;    &quot;Dim524&quot;    &quot;Dim525&quot;    &quot;Dim526&quot;   
+## [535] &quot;Dim527&quot;    &quot;Dim528&quot;    &quot;Dim529&quot;    &quot;Dim530&quot;    &quot;Dim531&quot;    &quot;Dim532&quot;   
+## [541] &quot;Dim533&quot;    &quot;Dim534&quot;    &quot;Dim535&quot;    &quot;Dim536&quot;    &quot;Dim537&quot;    &quot;Dim538&quot;   
+## [547] &quot;Dim539&quot;    &quot;Dim540&quot;    &quot;Dim541&quot;    &quot;Dim542&quot;    &quot;Dim543&quot;    &quot;Dim544&quot;   
+## [553] &quot;Dim545&quot;    &quot;Dim546&quot;    &quot;Dim547&quot;    &quot;Dim548&quot;    &quot;Dim549&quot;    &quot;Dim550&quot;   
+## [559] &quot;Dim551&quot;    &quot;Dim552&quot;    &quot;Dim553&quot;    &quot;Dim554&quot;    &quot;Dim555&quot;    &quot;Dim556&quot;   
+## [565] &quot;Dim557&quot;    &quot;Dim558&quot;    &quot;Dim559&quot;    &quot;Dim560&quot;    &quot;Dim561&quot;    &quot;Dim562&quot;   
+## [571] &quot;Dim563&quot;    &quot;Dim564&quot;    &quot;Dim565&quot;    &quot;Dim566&quot;    &quot;Dim567&quot;    &quot;Dim568&quot;   
+## [577] &quot;Dim569&quot;    &quot;Dim570&quot;    &quot;Dim571&quot;    &quot;Dim572&quot;    &quot;Dim573&quot;    &quot;Dim574&quot;   
+## [583] &quot;Dim575&quot;    &quot;Dim576&quot;    &quot;Dim577&quot;    &quot;Dim578&quot;    &quot;Dim579&quot;    &quot;Dim580&quot;   
+## [589] &quot;Dim581&quot;    &quot;Dim582&quot;    &quot;Dim583&quot;    &quot;Dim584&quot;    &quot;Dim585&quot;    &quot;Dim586&quot;   
+## [595] &quot;Dim587&quot;    &quot;Dim588&quot;    &quot;Dim589&quot;    &quot;Dim590&quot;    &quot;Dim591&quot;    &quot;Dim592&quot;   
+## [601] &quot;Dim593&quot;    &quot;Dim594&quot;    &quot;Dim595&quot;    &quot;Dim596&quot;    &quot;Dim597&quot;    &quot;Dim598&quot;   
+## [607] &quot;Dim599&quot;    &quot;Dim600&quot;    &quot;Dim601&quot;    &quot;Dim602&quot;    &quot;Dim603&quot;    &quot;Dim604&quot;   
+## [613] &quot;Dim605&quot;    &quot;Dim606&quot;    &quot;Dim607&quot;    &quot;Dim608&quot;    &quot;Dim609&quot;    &quot;Dim610&quot;   
+## [619] &quot;Dim611&quot;    &quot;Dim612&quot;    &quot;Dim613&quot;    &quot;Dim614&quot;    &quot;Dim615&quot;    &quot;Dim616&quot;   
+## [625] &quot;Dim617&quot;    &quot;Dim618&quot;    &quot;Dim619&quot;    &quot;Dim620&quot;    &quot;Dim621&quot;    &quot;Dim622&quot;   
+## [631] &quot;Dim623&quot;    &quot;Dim624&quot;    &quot;Dim625&quot;    &quot;Dim626&quot;    &quot;Dim627&quot;    &quot;Dim628&quot;   
+## [637] &quot;Dim629&quot;    &quot;Dim630&quot;    &quot;Dim631&quot;    &quot;Dim632&quot;    &quot;Dim633&quot;    &quot;Dim634&quot;   
+## [643] &quot;Dim635&quot;    &quot;Dim636&quot;    &quot;Dim637&quot;    &quot;Dim638&quot;    &quot;Dim639&quot;    &quot;Dim640&quot;   
+## [649] &quot;Dim641&quot;    &quot;Dim642&quot;    &quot;Dim643&quot;    &quot;Dim644&quot;    &quot;Dim645&quot;    &quot;Dim646&quot;   
+## [655] &quot;Dim647&quot;    &quot;Dim648&quot;    &quot;Dim649&quot;    &quot;Dim650&quot;    &quot;Dim651&quot;    &quot;Dim652&quot;   
+## [661] &quot;Dim653&quot;    &quot;Dim654&quot;    &quot;Dim655&quot;    &quot;Dim656&quot;    &quot;Dim657&quot;    &quot;Dim658&quot;   
+## [667] &quot;Dim659&quot;    &quot;Dim660&quot;    &quot;Dim661&quot;    &quot;Dim662&quot;    &quot;Dim663&quot;    &quot;Dim664&quot;   
+## [673] &quot;Dim665&quot;    &quot;Dim666&quot;    &quot;Dim667&quot;    &quot;Dim668&quot;    &quot;Dim669&quot;    &quot;Dim670&quot;   
+## [679] &quot;Dim671&quot;    &quot;Dim672&quot;    &quot;Dim673&quot;    &quot;Dim674&quot;    &quot;Dim675&quot;    &quot;Dim676&quot;   
+## [685] &quot;Dim677&quot;    &quot;Dim678&quot;    &quot;Dim679&quot;    &quot;Dim680&quot;    &quot;Dim681&quot;    &quot;Dim682&quot;   
+## [691] &quot;Dim683&quot;    &quot;Dim684&quot;    &quot;Dim685&quot;    &quot;Dim686&quot;    &quot;Dim687&quot;    &quot;Dim688&quot;   
+## [697] &quot;Dim689&quot;    &quot;Dim690&quot;    &quot;Dim691&quot;    &quot;Dim692&quot;    &quot;Dim693&quot;    &quot;Dim694&quot;   
+## [703] &quot;Dim695&quot;    &quot;Dim696&quot;    &quot;Dim697&quot;    &quot;Dim698&quot;    &quot;Dim699&quot;    &quot;Dim700&quot;   
+## [709] &quot;Dim701&quot;    &quot;Dim702&quot;    &quot;Dim703&quot;    &quot;Dim704&quot;    &quot;Dim705&quot;    &quot;Dim706&quot;   
+## [715] &quot;Dim707&quot;    &quot;Dim708&quot;    &quot;Dim709&quot;    &quot;Dim710&quot;    &quot;Dim711&quot;    &quot;Dim712&quot;   
+## [721] &quot;Dim713&quot;    &quot;Dim714&quot;    &quot;Dim715&quot;    &quot;Dim716&quot;    &quot;Dim717&quot;    &quot;Dim718&quot;   
+## [727] &quot;Dim719&quot;    &quot;Dim720&quot;    &quot;Dim721&quot;    &quot;Dim722&quot;    &quot;Dim723&quot;    &quot;Dim724&quot;   
+## [733] &quot;Dim725&quot;    &quot;Dim726&quot;    &quot;Dim727&quot;    &quot;Dim728&quot;    &quot;Dim729&quot;    &quot;Dim730&quot;   
+## [739] &quot;Dim731&quot;    &quot;Dim732&quot;    &quot;Dim733&quot;    &quot;Dim734&quot;    &quot;Dim735&quot;    &quot;Dim736&quot;   
+## [745] &quot;Dim737&quot;    &quot;Dim738&quot;    &quot;Dim739&quot;    &quot;Dim740&quot;    &quot;Dim741&quot;    &quot;Dim742&quot;   
+## [751] &quot;Dim743&quot;    &quot;Dim744&quot;    &quot;Dim745&quot;    &quot;Dim746&quot;    &quot;Dim747&quot;    &quot;Dim748&quot;   
+## [757] &quot;Dim749&quot;    &quot;Dim750&quot;    &quot;Dim751&quot;    &quot;Dim752&quot;    &quot;Dim753&quot;    &quot;Dim754&quot;   
+## [763] &quot;Dim755&quot;    &quot;Dim756&quot;    &quot;Dim757&quot;    &quot;Dim758&quot;    &quot;Dim759&quot;    &quot;Dim760&quot;   
+## [769] &quot;Dim761&quot;    &quot;Dim762&quot;    &quot;Dim763&quot;    &quot;Dim764&quot;    &quot;Dim765&quot;    &quot;Dim766&quot;   
+## [775] &quot;Dim767&quot;    &quot;Dim768&quot;</code></pre>
+<pre class="r"><code># Removing unnecessary columns
+data_tweet &lt;- data_merge %&gt;% 
+  select(-c(time, tweet, id_col)) %&gt;% 
+  mutate( date = as.numeric(date),
+          hour = as.numeric(hour))
+
+str(data_tweet)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    1500 obs. of  773 variables:
+##  $ sentiment: num  0 1 1 1 1 1 0 0 1 1 ...
+##  $ day      : num  4 7 7 5 7 7 3 1 2 6 ...
+##  $ month    : chr  &quot;Jun&quot; &quot;May&quot; &quot;May&quot; &quot;May&quot; ...
+##  $ date     : num  18 10 31 22 31 7 17 1 26 30 ...
+##  $ hour     : num  7 0 9 7 2 9 6 6 2 0 ...
+##  $ Dim1     : num  -0.004529 0.005332 -0.000179 -0.042861 -0.006402 ...
+##  $ Dim2     : num  0.0378 -0.0534 -0.0602 0.117 -0.0174 ...
+##  $ Dim3     : num  0.0713 0.0237 0.0244 0.0521 0.0359 ...
+##  $ Dim4     : num  0.04098 0.03849 0.00284 -0.01649 -0.11596 ...
+##  $ Dim5     : num  0.2108 -0.1136 0.0876 0.2701 0.149 ...
+##  $ Dim6     : num  0.01583 -0.05902 0.00656 0.04501 0.05666 ...
+##  $ Dim7     : num  -0.0248 0.0754 0.0173 0.0322 0.0214 ...
+##  $ Dim8     : num  0.018 0.004 -0.0364 0.0316 0.0313 ...
+##  $ Dim9     : num  0.0623 0.1146 0.124 -0.0304 0.0584 ...
+##  $ Dim10    : num  0.01462 0.07185 -0.00928 0.02446 -0.03611 ...
+##  $ Dim11    : num  -0.0324 -0.1259 -0.0919 -0.0116 -0.1408 ...
+##  $ Dim12    : num  -0.08174 0.00967 0.15016 -0.04894 0.08313 ...
+##  $ Dim13    : num  0.0561 -0.00893 0.0177 0.06726 0.07636 ...
+##  $ Dim14    : num  0.0348 -0.0769 -0.0948 -0.0393 -0.0162 ...
+##  $ Dim15    : num  0.0423 0.1194 0.0631 -0.0345 0.16 ...
+##  $ Dim16    : num  -0.00293 0.02281 0.08565 0.01093 0.06054 ...
+##  $ Dim17    : num  0.13861 0.1512 0.15145 0.079 -0.00729 ...
+##  $ Dim18    : num  0.14977 0.07475 -0.08111 -0.00363 0.09454 ...
+##  $ Dim19    : num  0.06536 0.11498 -0.00539 0.02181 0.02373 ...
+##  $ Dim20    : num  -0.02273 0.09376 0.2367 0.0205 -0.00904 ...
+##  $ Dim21    : num  -0.0345 -0.0994 -0.066 -0.0809 -0.0665 ...
+##  $ Dim22    : num  0.1475 0.0849 0.0389 0.0202 0.1013 ...
+##  $ Dim23    : num  -0.1232 -0.042 -0.0425 0.0678 0.0723 ...
+##  $ Dim24    : num  -0.01898 0.14874 0.05628 0.06047 -0.00457 ...
+##  $ Dim25    : num  0.0295 0.2 0.03 0.05 0.1025 ...
+##  $ Dim26    : num  0.1066 -0.037 0.0334 0.0924 0.0187 ...
+##  $ Dim27    : num  0.1306 0.125 0.0331 -0.0367 -0.0587 ...
+##  $ Dim28    : num  0.122 0.0267 0.0427 -0.0274 0.0878 ...
+##  $ Dim29    : num  0.0392 0.0571 0.1138 0.067 -0.0324 ...
+##  $ Dim30    : num  -0.0515 0.1008 0.0667 -0.0815 0.0151 ...
+##  $ Dim31    : num  -0.06988 0.00247 -0.01287 -0.09184 -0.03276 ...
+##  $ Dim32    : num  -0.036 -0.0449 -0.0334 -0.014 -0.0579 ...
+##  $ Dim33    : num  0.02782 0.04189 -0.00347 0.07169 0.09097 ...
+##  $ Dim34    : num  0.0449 -0.0138 -0.0497 0.0123 0.0496 ...
+##  $ Dim35    : num  0.11381 -0.00401 0.05412 -0.0354 -0.02368 ...
+##  $ Dim36    : num  -0.03349 -0.01744 -0.0047 -0.03632 -0.00081 ...
+##  $ Dim37    : num  0.0158 0.0717 0.1311 0.0677 0.0289 ...
+##  $ Dim38    : num  0.01724 0.0297 0.01647 0.07084 0.00215 ...
+##  $ Dim39    : num  0.1621 0.2773 0.0864 0.0978 0.0782 ...
+##  $ Dim40    : num  0.0451 0.1105 0.0783 0.0148 -0.053 ...
+##  $ Dim41    : num  -0.00457 0.05335 0.10408 -0.1154 -0.0022 ...
+##  $ Dim42    : num  -0.471 -0.5241 -0.4065 -0.0768 -0.3314 ...
+##  $ Dim43    : num  -0.028751 0.012051 0.075312 -0.000296 0.004214 ...
+##  $ Dim44    : num  0.03079 0.01422 0.00826 0.00967 0.01688 ...
+##  $ Dim45    : num  -0.0311 0.0487 0.0881 0.0329 0.0123 ...
+##  $ Dim46    : num  0.03909 0.05004 0.03799 0.00566 -0.02197 ...
+##  $ Dim47    : num  -0.16919 -0.00113 0.0235 -0.10431 0.02195 ...
+##  $ Dim48    : num  -0.17304 -0.102 0.10444 -0.0532 0.00266 ...
+##  $ Dim49    : num  -0.00389 0.03604 0.01858 0.07063 0.07762 ...
+##  $ Dim50    : num  -0.0442 -0.0147 -0.0668 -0.053 -0.0208 ...
+##  $ Dim51    : num  -0.1316 -0.00895 0.01781 0.0063 0.02701 ...
+##  $ Dim52    : num  0.0394 0.0481 0.0264 0.0285 0.0355 ...
+##  $ Dim53    : num  0.0142 -0.0662 0.0532 -0.0149 -0.0335 ...
+##  $ Dim54    : num  -0.08835 0.00386 0.03693 -0.03898 -0.02556 ...
+##  $ Dim55    : num  -0.06329 -0.02366 -0.07728 -0.02772 -0.00211 ...
+##  $ Dim56    : num  0.07247 -0.03649 0.01457 0.00435 0.07405 ...
+##  $ Dim57    : num  0.0799 0.0513 0.0645 0.0172 -0.0193 ...
+##  $ Dim58    : num  0.1472 0.1778 0.051 0.1715 -0.0237 ...
+##  $ Dim59    : num  0.09797 -0.01498 -0.02319 0.00417 0.03128 ...
+##  $ Dim60    : num  -0.03662 0.06135 0.04429 0.00964 0.00907 ...
+##  $ Dim61    : num  -0.0244 -0.0521 -0.0107 -0.0156 -0.1087 ...
+##  $ Dim62    : num  0.1773 0.1553 0.0782 0.5325 0.5176 ...
+##  $ Dim63    : num  -0.0465 -0.131 -0.0456 0.0095 0.0168 ...
+##  $ Dim64    : num  -0.0418 0.0262 0.0953 0.0137 0.1542 ...
+##  $ Dim65    : num  0.0718 0.104 -0.0174 0.0153 -0.0501 ...
+##  $ Dim66    : num  -0.031 0.0206 -0.0457 -0.0663 -0.0698 ...
+##  $ Dim67    : num  0.03796 -0.02802 0.00686 0.03321 -0.0445 ...
+##  $ Dim68    : num  0.0673 -0.0424 -0.0443 0.0388 0.093 ...
+##  $ Dim69    : num  -0.00597 -0.00538 0.0603 0.06506 -0.01446 ...
+##  $ Dim70    : num  -0.00827 0.06832 0.01779 0.07778 0.02992 ...
+##  $ Dim71    : num  -0.03047 0.07538 0.02131 -0.00043 0.08424 ...
+##  $ Dim72    : num  0.0799 0.0732 0.1583 -0.1394 -0.0434 ...
+##  $ Dim73    : num  0.1058 0.1493 0.1195 0.0776 0.0735 ...
+##  $ Dim74    : num  0.0401 -0.0577 -0.1569 0.0427 -0.091 ...
+##  $ Dim75    : num  0.0354 0.1147 0.0354 -0.0211 0.0646 ...
+##  $ Dim76    : num  0.2144 0.1548 0.0635 0.0962 0.134 ...
+##  $ Dim77    : num  0.14636 0.07665 0.00706 0.04997 0.12276 ...
+##  $ Dim78    : num  -5.38 -5.78 -5.08 -3.82 -5.48 ...
+##  $ Dim79    : num  -0.0794 -0.2323 -0.2965 -0.1226 -0.0514 ...
+##  $ Dim80    : num  0.1541 -0.0383 0.0201 0.0274 0.1477 ...
+##  $ Dim81    : num  0.084 0.1415 0.1172 0.0337 0.0869 ...
+##  $ Dim82    : num  -0.2193 -0.0324 -0.0518 -0.0523 -0.0508 ...
+##  $ Dim83    : num  0.401 0.304 0.557 0.796 0.829 ...
+##  $ Dim84    : num  -0.018 -0.0491 -0.0288 0.0107 0.0884 ...
+##  $ Dim85    : num  -0.0288 0.1344 0.0587 0.1159 0.1083 ...
+##  $ Dim86    : num  -0.1057 0.0384 -0.1828 0.1636 -0.1854 ...
+##  $ Dim87    : num  0.061351 0.000441 0.019861 0.031939 0.008732 ...
+##  $ Dim88    : num  -0.0771 -0.076 0.0725 0.117 0.059 ...
+##  $ Dim89    : num  -0.01544 0.04765 0.00331 0.01175 0.04488 ...
+##  $ Dim90    : num  0.1063 -0.00783 0.05557 -0.02587 0.11269 ...
+##  $ Dim91    : num  -0.0252 0.1177 0.0919 0.0254 0.1667 ...
+##  $ Dim92    : num  -0.11299 0.09297 -0.00285 0.02457 0.02194 ...
+##  $ Dim93    : num  0.07342 -0.0036 -0.0041 -0.02691 0.00207 ...
+##  $ Dim94    : num  -0.0834 0.1008 -0.0279 0.0111 0.1429 ...
+##   [list output truncated]</code></pre>
 </div>
 <div id="task-1.6" class="section level2">
 <h2>Task 1.6</h2>
+<pre class="r"><code>outcome &lt;- c(&#39;sentiment&#39;)
+categorical &lt;- c(&#39;month&#39;)
+numeric &lt;- y
+cyclic &lt;- c(&#39;day&#39;, &#39;date&#39;, &#39;hour&#39;)
+
+blueprint &lt;- recipe(
+  x = data_tweet,
+  vars = c(outcome, categorical, cyclic, numeric),
+  roles =  c(&#39;outcome&#39;, rep(&#39;predictor&#39;, 772))) %&gt;% 
+    step_harmonic(day, cycle_size = 1, frequency = 1/7) %&gt;% 
+    step_harmonic(date, cycle_size = 1, frequency = 1/31) %&gt;% 
+    step_harmonic(hour, cycle_size = 1, frequency = 1/24)%&gt;% 
+    step_dummy(all_of(categorical),one_hot=TRUE) %&gt;% 
+    step_normalize(all_of(numeric))
+
+blueprint</code></pre>
+<pre><code>## Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##    outcome          1
+##  predictor        772
+## 
+## Operations:
+## 
+## Harmonic numeric variables for day
+## Harmonic numeric variables for date
+## Harmonic numeric variables for hour
+## Dummy variables from all_of(categorical)
+## Centering and scaling for all_of(numeric)</code></pre>
+<pre class="r"><code>prepare &lt;- prep(blueprint, training = data_tweet)
+
+prepare</code></pre>
+<pre><code>## Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##    outcome          1
+##  predictor        772
+## 
+## Training data contained 1500 data points and no missing data.
+## 
+## Operations:
+## 
+## Harmonic numeric variables for &lt;none&gt; [trained]
+## Harmonic numeric variables for &lt;none&gt; [trained]
+## Harmonic numeric variables for &lt;none&gt; [trained]
+## Dummy variables from month [trained]
+## Centering and scaling for Dim1, Dim2, Dim3, Dim4, Dim5, Dim6, Dim7, Dim8,... [trained]</code></pre>
 </div>
 <div id="task-1.7" class="section level2">
 <h2>Task 1.7</h2>
+<pre class="r"><code>baked_data &lt;- bake(prepare, new_data = data_tweet)
+baked_data</code></pre>
+<pre><code>## # A tibble: 1,500 × 781
+##    sentiment   day  date  hour    Dim1   Dim2   Dim3    Dim4   Dim5   Dim6
+##        &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+##  1         0     4    18     7 -0.202   0.267  1.17   0.901   0.253  0.445
+##  2         1     7    10     0  0.0333 -1.15  -0.165  0.864  -1.91  -0.307
+##  3         1     7    31     9 -0.0984 -1.26  -0.143  0.335  -0.569  0.351
+##  4         1     5    22     7 -1.12    1.50   0.628  0.0475  0.649  0.737
+##  5         1     7    31     2 -0.247  -0.591  0.177 -1.43   -0.160  0.854
+##  6         1     7     7     9 -0.958  -1.28  -1.01   1.02    0.544 -0.854
+##  7         0     3    17     6  1.27   -0.328 -1.26  -0.366  -1.26  -1.18 
+##  8         0     1     1     6  1.41   -1.15   0.624 -0.778  -0.398 -1.59 
+##  9         1     2    26     2  0.226  -0.311 -0.843  0.136   0.767 -0.329
+## 10         1     6    30     0 -0.823   0.249 -0.454  1.97   -0.408  0.535
+## # … with 1,490 more rows, and 771 more variables: Dim7 &lt;dbl&gt;, Dim8 &lt;dbl&gt;,
+## #   Dim9 &lt;dbl&gt;, Dim10 &lt;dbl&gt;, Dim11 &lt;dbl&gt;, Dim12 &lt;dbl&gt;, Dim13 &lt;dbl&gt;,
+## #   Dim14 &lt;dbl&gt;, Dim15 &lt;dbl&gt;, Dim16 &lt;dbl&gt;, Dim17 &lt;dbl&gt;, Dim18 &lt;dbl&gt;,
+## #   Dim19 &lt;dbl&gt;, Dim20 &lt;dbl&gt;, Dim21 &lt;dbl&gt;, Dim22 &lt;dbl&gt;, Dim23 &lt;dbl&gt;,
+## #   Dim24 &lt;dbl&gt;, Dim25 &lt;dbl&gt;, Dim26 &lt;dbl&gt;, Dim27 &lt;dbl&gt;, Dim28 &lt;dbl&gt;,
+## #   Dim29 &lt;dbl&gt;, Dim30 &lt;dbl&gt;, Dim31 &lt;dbl&gt;, Dim32 &lt;dbl&gt;, Dim33 &lt;dbl&gt;,
+## #   Dim34 &lt;dbl&gt;, Dim35 &lt;dbl&gt;, Dim36 &lt;dbl&gt;, Dim37 &lt;dbl&gt;, Dim38 &lt;dbl&gt;, …</code></pre>
 </div>
 <div id="task-1.8" class="section level2">
 <h2>Task 1.8</h2>
+<pre class="r"><code># This code can be used to do task 1.8 
+ baked_data &lt;- baked_data %&gt;% 
+   select(-c(day, date, hour))
+names(baked_data)</code></pre>
+<pre><code>##   [1] &quot;sentiment&quot;  &quot;Dim1&quot;       &quot;Dim2&quot;       &quot;Dim3&quot;       &quot;Dim4&quot;      
+##   [6] &quot;Dim5&quot;       &quot;Dim6&quot;       &quot;Dim7&quot;       &quot;Dim8&quot;       &quot;Dim9&quot;      
+##  [11] &quot;Dim10&quot;      &quot;Dim11&quot;      &quot;Dim12&quot;      &quot;Dim13&quot;      &quot;Dim14&quot;     
+##  [16] &quot;Dim15&quot;      &quot;Dim16&quot;      &quot;Dim17&quot;      &quot;Dim18&quot;      &quot;Dim19&quot;     
+##  [21] &quot;Dim20&quot;      &quot;Dim21&quot;      &quot;Dim22&quot;      &quot;Dim23&quot;      &quot;Dim24&quot;     
+##  [26] &quot;Dim25&quot;      &quot;Dim26&quot;      &quot;Dim27&quot;      &quot;Dim28&quot;      &quot;Dim29&quot;     
+##  [31] &quot;Dim30&quot;      &quot;Dim31&quot;      &quot;Dim32&quot;      &quot;Dim33&quot;      &quot;Dim34&quot;     
+##  [36] &quot;Dim35&quot;      &quot;Dim36&quot;      &quot;Dim37&quot;      &quot;Dim38&quot;      &quot;Dim39&quot;     
+##  [41] &quot;Dim40&quot;      &quot;Dim41&quot;      &quot;Dim42&quot;      &quot;Dim43&quot;      &quot;Dim44&quot;     
+##  [46] &quot;Dim45&quot;      &quot;Dim46&quot;      &quot;Dim47&quot;      &quot;Dim48&quot;      &quot;Dim49&quot;     
+##  [51] &quot;Dim50&quot;      &quot;Dim51&quot;      &quot;Dim52&quot;      &quot;Dim53&quot;      &quot;Dim54&quot;     
+##  [56] &quot;Dim55&quot;      &quot;Dim56&quot;      &quot;Dim57&quot;      &quot;Dim58&quot;      &quot;Dim59&quot;     
+##  [61] &quot;Dim60&quot;      &quot;Dim61&quot;      &quot;Dim62&quot;      &quot;Dim63&quot;      &quot;Dim64&quot;     
+##  [66] &quot;Dim65&quot;      &quot;Dim66&quot;      &quot;Dim67&quot;      &quot;Dim68&quot;      &quot;Dim69&quot;     
+##  [71] &quot;Dim70&quot;      &quot;Dim71&quot;      &quot;Dim72&quot;      &quot;Dim73&quot;      &quot;Dim74&quot;     
+##  [76] &quot;Dim75&quot;      &quot;Dim76&quot;      &quot;Dim77&quot;      &quot;Dim78&quot;      &quot;Dim79&quot;     
+##  [81] &quot;Dim80&quot;      &quot;Dim81&quot;      &quot;Dim82&quot;      &quot;Dim83&quot;      &quot;Dim84&quot;     
+##  [86] &quot;Dim85&quot;      &quot;Dim86&quot;      &quot;Dim87&quot;      &quot;Dim88&quot;      &quot;Dim89&quot;     
+##  [91] &quot;Dim90&quot;      &quot;Dim91&quot;      &quot;Dim92&quot;      &quot;Dim93&quot;      &quot;Dim94&quot;     
+##  [96] &quot;Dim95&quot;      &quot;Dim96&quot;      &quot;Dim97&quot;      &quot;Dim98&quot;      &quot;Dim99&quot;     
+## [101] &quot;Dim100&quot;     &quot;Dim101&quot;     &quot;Dim102&quot;     &quot;Dim103&quot;     &quot;Dim104&quot;    
+## [106] &quot;Dim105&quot;     &quot;Dim106&quot;     &quot;Dim107&quot;     &quot;Dim108&quot;     &quot;Dim109&quot;    
+## [111] &quot;Dim110&quot;     &quot;Dim111&quot;     &quot;Dim112&quot;     &quot;Dim113&quot;     &quot;Dim114&quot;    
+## [116] &quot;Dim115&quot;     &quot;Dim116&quot;     &quot;Dim117&quot;     &quot;Dim118&quot;     &quot;Dim119&quot;    
+## [121] &quot;Dim120&quot;     &quot;Dim121&quot;     &quot;Dim122&quot;     &quot;Dim123&quot;     &quot;Dim124&quot;    
+## [126] &quot;Dim125&quot;     &quot;Dim126&quot;     &quot;Dim127&quot;     &quot;Dim128&quot;     &quot;Dim129&quot;    
+## [131] &quot;Dim130&quot;     &quot;Dim131&quot;     &quot;Dim132&quot;     &quot;Dim133&quot;     &quot;Dim134&quot;    
+## [136] &quot;Dim135&quot;     &quot;Dim136&quot;     &quot;Dim137&quot;     &quot;Dim138&quot;     &quot;Dim139&quot;    
+## [141] &quot;Dim140&quot;     &quot;Dim141&quot;     &quot;Dim142&quot;     &quot;Dim143&quot;     &quot;Dim144&quot;    
+## [146] &quot;Dim145&quot;     &quot;Dim146&quot;     &quot;Dim147&quot;     &quot;Dim148&quot;     &quot;Dim149&quot;    
+## [151] &quot;Dim150&quot;     &quot;Dim151&quot;     &quot;Dim152&quot;     &quot;Dim153&quot;     &quot;Dim154&quot;    
+## [156] &quot;Dim155&quot;     &quot;Dim156&quot;     &quot;Dim157&quot;     &quot;Dim158&quot;     &quot;Dim159&quot;    
+## [161] &quot;Dim160&quot;     &quot;Dim161&quot;     &quot;Dim162&quot;     &quot;Dim163&quot;     &quot;Dim164&quot;    
+## [166] &quot;Dim165&quot;     &quot;Dim166&quot;     &quot;Dim167&quot;     &quot;Dim168&quot;     &quot;Dim169&quot;    
+## [171] &quot;Dim170&quot;     &quot;Dim171&quot;     &quot;Dim172&quot;     &quot;Dim173&quot;     &quot;Dim174&quot;    
+## [176] &quot;Dim175&quot;     &quot;Dim176&quot;     &quot;Dim177&quot;     &quot;Dim178&quot;     &quot;Dim179&quot;    
+## [181] &quot;Dim180&quot;     &quot;Dim181&quot;     &quot;Dim182&quot;     &quot;Dim183&quot;     &quot;Dim184&quot;    
+## [186] &quot;Dim185&quot;     &quot;Dim186&quot;     &quot;Dim187&quot;     &quot;Dim188&quot;     &quot;Dim189&quot;    
+## [191] &quot;Dim190&quot;     &quot;Dim191&quot;     &quot;Dim192&quot;     &quot;Dim193&quot;     &quot;Dim194&quot;    
+## [196] &quot;Dim195&quot;     &quot;Dim196&quot;     &quot;Dim197&quot;     &quot;Dim198&quot;     &quot;Dim199&quot;    
+## [201] &quot;Dim200&quot;     &quot;Dim201&quot;     &quot;Dim202&quot;     &quot;Dim203&quot;     &quot;Dim204&quot;    
+## [206] &quot;Dim205&quot;     &quot;Dim206&quot;     &quot;Dim207&quot;     &quot;Dim208&quot;     &quot;Dim209&quot;    
+## [211] &quot;Dim210&quot;     &quot;Dim211&quot;     &quot;Dim212&quot;     &quot;Dim213&quot;     &quot;Dim214&quot;    
+## [216] &quot;Dim215&quot;     &quot;Dim216&quot;     &quot;Dim217&quot;     &quot;Dim218&quot;     &quot;Dim219&quot;    
+## [221] &quot;Dim220&quot;     &quot;Dim221&quot;     &quot;Dim222&quot;     &quot;Dim223&quot;     &quot;Dim224&quot;    
+## [226] &quot;Dim225&quot;     &quot;Dim226&quot;     &quot;Dim227&quot;     &quot;Dim228&quot;     &quot;Dim229&quot;    
+## [231] &quot;Dim230&quot;     &quot;Dim231&quot;     &quot;Dim232&quot;     &quot;Dim233&quot;     &quot;Dim234&quot;    
+## [236] &quot;Dim235&quot;     &quot;Dim236&quot;     &quot;Dim237&quot;     &quot;Dim238&quot;     &quot;Dim239&quot;    
+## [241] &quot;Dim240&quot;     &quot;Dim241&quot;     &quot;Dim242&quot;     &quot;Dim243&quot;     &quot;Dim244&quot;    
+## [246] &quot;Dim245&quot;     &quot;Dim246&quot;     &quot;Dim247&quot;     &quot;Dim248&quot;     &quot;Dim249&quot;    
+## [251] &quot;Dim250&quot;     &quot;Dim251&quot;     &quot;Dim252&quot;     &quot;Dim253&quot;     &quot;Dim254&quot;    
+## [256] &quot;Dim255&quot;     &quot;Dim256&quot;     &quot;Dim257&quot;     &quot;Dim258&quot;     &quot;Dim259&quot;    
+## [261] &quot;Dim260&quot;     &quot;Dim261&quot;     &quot;Dim262&quot;     &quot;Dim263&quot;     &quot;Dim264&quot;    
+## [266] &quot;Dim265&quot;     &quot;Dim266&quot;     &quot;Dim267&quot;     &quot;Dim268&quot;     &quot;Dim269&quot;    
+## [271] &quot;Dim270&quot;     &quot;Dim271&quot;     &quot;Dim272&quot;     &quot;Dim273&quot;     &quot;Dim274&quot;    
+## [276] &quot;Dim275&quot;     &quot;Dim276&quot;     &quot;Dim277&quot;     &quot;Dim278&quot;     &quot;Dim279&quot;    
+## [281] &quot;Dim280&quot;     &quot;Dim281&quot;     &quot;Dim282&quot;     &quot;Dim283&quot;     &quot;Dim284&quot;    
+## [286] &quot;Dim285&quot;     &quot;Dim286&quot;     &quot;Dim287&quot;     &quot;Dim288&quot;     &quot;Dim289&quot;    
+## [291] &quot;Dim290&quot;     &quot;Dim291&quot;     &quot;Dim292&quot;     &quot;Dim293&quot;     &quot;Dim294&quot;    
+## [296] &quot;Dim295&quot;     &quot;Dim296&quot;     &quot;Dim297&quot;     &quot;Dim298&quot;     &quot;Dim299&quot;    
+## [301] &quot;Dim300&quot;     &quot;Dim301&quot;     &quot;Dim302&quot;     &quot;Dim303&quot;     &quot;Dim304&quot;    
+## [306] &quot;Dim305&quot;     &quot;Dim306&quot;     &quot;Dim307&quot;     &quot;Dim308&quot;     &quot;Dim309&quot;    
+## [311] &quot;Dim310&quot;     &quot;Dim311&quot;     &quot;Dim312&quot;     &quot;Dim313&quot;     &quot;Dim314&quot;    
+## [316] &quot;Dim315&quot;     &quot;Dim316&quot;     &quot;Dim317&quot;     &quot;Dim318&quot;     &quot;Dim319&quot;    
+## [321] &quot;Dim320&quot;     &quot;Dim321&quot;     &quot;Dim322&quot;     &quot;Dim323&quot;     &quot;Dim324&quot;    
+## [326] &quot;Dim325&quot;     &quot;Dim326&quot;     &quot;Dim327&quot;     &quot;Dim328&quot;     &quot;Dim329&quot;    
+## [331] &quot;Dim330&quot;     &quot;Dim331&quot;     &quot;Dim332&quot;     &quot;Dim333&quot;     &quot;Dim334&quot;    
+## [336] &quot;Dim335&quot;     &quot;Dim336&quot;     &quot;Dim337&quot;     &quot;Dim338&quot;     &quot;Dim339&quot;    
+## [341] &quot;Dim340&quot;     &quot;Dim341&quot;     &quot;Dim342&quot;     &quot;Dim343&quot;     &quot;Dim344&quot;    
+## [346] &quot;Dim345&quot;     &quot;Dim346&quot;     &quot;Dim347&quot;     &quot;Dim348&quot;     &quot;Dim349&quot;    
+## [351] &quot;Dim350&quot;     &quot;Dim351&quot;     &quot;Dim352&quot;     &quot;Dim353&quot;     &quot;Dim354&quot;    
+## [356] &quot;Dim355&quot;     &quot;Dim356&quot;     &quot;Dim357&quot;     &quot;Dim358&quot;     &quot;Dim359&quot;    
+## [361] &quot;Dim360&quot;     &quot;Dim361&quot;     &quot;Dim362&quot;     &quot;Dim363&quot;     &quot;Dim364&quot;    
+## [366] &quot;Dim365&quot;     &quot;Dim366&quot;     &quot;Dim367&quot;     &quot;Dim368&quot;     &quot;Dim369&quot;    
+## [371] &quot;Dim370&quot;     &quot;Dim371&quot;     &quot;Dim372&quot;     &quot;Dim373&quot;     &quot;Dim374&quot;    
+## [376] &quot;Dim375&quot;     &quot;Dim376&quot;     &quot;Dim377&quot;     &quot;Dim378&quot;     &quot;Dim379&quot;    
+## [381] &quot;Dim380&quot;     &quot;Dim381&quot;     &quot;Dim382&quot;     &quot;Dim383&quot;     &quot;Dim384&quot;    
+## [386] &quot;Dim385&quot;     &quot;Dim386&quot;     &quot;Dim387&quot;     &quot;Dim388&quot;     &quot;Dim389&quot;    
+## [391] &quot;Dim390&quot;     &quot;Dim391&quot;     &quot;Dim392&quot;     &quot;Dim393&quot;     &quot;Dim394&quot;    
+## [396] &quot;Dim395&quot;     &quot;Dim396&quot;     &quot;Dim397&quot;     &quot;Dim398&quot;     &quot;Dim399&quot;    
+## [401] &quot;Dim400&quot;     &quot;Dim401&quot;     &quot;Dim402&quot;     &quot;Dim403&quot;     &quot;Dim404&quot;    
+## [406] &quot;Dim405&quot;     &quot;Dim406&quot;     &quot;Dim407&quot;     &quot;Dim408&quot;     &quot;Dim409&quot;    
+## [411] &quot;Dim410&quot;     &quot;Dim411&quot;     &quot;Dim412&quot;     &quot;Dim413&quot;     &quot;Dim414&quot;    
+## [416] &quot;Dim415&quot;     &quot;Dim416&quot;     &quot;Dim417&quot;     &quot;Dim418&quot;     &quot;Dim419&quot;    
+## [421] &quot;Dim420&quot;     &quot;Dim421&quot;     &quot;Dim422&quot;     &quot;Dim423&quot;     &quot;Dim424&quot;    
+## [426] &quot;Dim425&quot;     &quot;Dim426&quot;     &quot;Dim427&quot;     &quot;Dim428&quot;     &quot;Dim429&quot;    
+## [431] &quot;Dim430&quot;     &quot;Dim431&quot;     &quot;Dim432&quot;     &quot;Dim433&quot;     &quot;Dim434&quot;    
+## [436] &quot;Dim435&quot;     &quot;Dim436&quot;     &quot;Dim437&quot;     &quot;Dim438&quot;     &quot;Dim439&quot;    
+## [441] &quot;Dim440&quot;     &quot;Dim441&quot;     &quot;Dim442&quot;     &quot;Dim443&quot;     &quot;Dim444&quot;    
+## [446] &quot;Dim445&quot;     &quot;Dim446&quot;     &quot;Dim447&quot;     &quot;Dim448&quot;     &quot;Dim449&quot;    
+## [451] &quot;Dim450&quot;     &quot;Dim451&quot;     &quot;Dim452&quot;     &quot;Dim453&quot;     &quot;Dim454&quot;    
+## [456] &quot;Dim455&quot;     &quot;Dim456&quot;     &quot;Dim457&quot;     &quot;Dim458&quot;     &quot;Dim459&quot;    
+## [461] &quot;Dim460&quot;     &quot;Dim461&quot;     &quot;Dim462&quot;     &quot;Dim463&quot;     &quot;Dim464&quot;    
+## [466] &quot;Dim465&quot;     &quot;Dim466&quot;     &quot;Dim467&quot;     &quot;Dim468&quot;     &quot;Dim469&quot;    
+## [471] &quot;Dim470&quot;     &quot;Dim471&quot;     &quot;Dim472&quot;     &quot;Dim473&quot;     &quot;Dim474&quot;    
+## [476] &quot;Dim475&quot;     &quot;Dim476&quot;     &quot;Dim477&quot;     &quot;Dim478&quot;     &quot;Dim479&quot;    
+## [481] &quot;Dim480&quot;     &quot;Dim481&quot;     &quot;Dim482&quot;     &quot;Dim483&quot;     &quot;Dim484&quot;    
+## [486] &quot;Dim485&quot;     &quot;Dim486&quot;     &quot;Dim487&quot;     &quot;Dim488&quot;     &quot;Dim489&quot;    
+## [491] &quot;Dim490&quot;     &quot;Dim491&quot;     &quot;Dim492&quot;     &quot;Dim493&quot;     &quot;Dim494&quot;    
+## [496] &quot;Dim495&quot;     &quot;Dim496&quot;     &quot;Dim497&quot;     &quot;Dim498&quot;     &quot;Dim499&quot;    
+## [501] &quot;Dim500&quot;     &quot;Dim501&quot;     &quot;Dim502&quot;     &quot;Dim503&quot;     &quot;Dim504&quot;    
+## [506] &quot;Dim505&quot;     &quot;Dim506&quot;     &quot;Dim507&quot;     &quot;Dim508&quot;     &quot;Dim509&quot;    
+## [511] &quot;Dim510&quot;     &quot;Dim511&quot;     &quot;Dim512&quot;     &quot;Dim513&quot;     &quot;Dim514&quot;    
+## [516] &quot;Dim515&quot;     &quot;Dim516&quot;     &quot;Dim517&quot;     &quot;Dim518&quot;     &quot;Dim519&quot;    
+## [521] &quot;Dim520&quot;     &quot;Dim521&quot;     &quot;Dim522&quot;     &quot;Dim523&quot;     &quot;Dim524&quot;    
+## [526] &quot;Dim525&quot;     &quot;Dim526&quot;     &quot;Dim527&quot;     &quot;Dim528&quot;     &quot;Dim529&quot;    
+## [531] &quot;Dim530&quot;     &quot;Dim531&quot;     &quot;Dim532&quot;     &quot;Dim533&quot;     &quot;Dim534&quot;    
+## [536] &quot;Dim535&quot;     &quot;Dim536&quot;     &quot;Dim537&quot;     &quot;Dim538&quot;     &quot;Dim539&quot;    
+## [541] &quot;Dim540&quot;     &quot;Dim541&quot;     &quot;Dim542&quot;     &quot;Dim543&quot;     &quot;Dim544&quot;    
+## [546] &quot;Dim545&quot;     &quot;Dim546&quot;     &quot;Dim547&quot;     &quot;Dim548&quot;     &quot;Dim549&quot;    
+## [551] &quot;Dim550&quot;     &quot;Dim551&quot;     &quot;Dim552&quot;     &quot;Dim553&quot;     &quot;Dim554&quot;    
+## [556] &quot;Dim555&quot;     &quot;Dim556&quot;     &quot;Dim557&quot;     &quot;Dim558&quot;     &quot;Dim559&quot;    
+## [561] &quot;Dim560&quot;     &quot;Dim561&quot;     &quot;Dim562&quot;     &quot;Dim563&quot;     &quot;Dim564&quot;    
+## [566] &quot;Dim565&quot;     &quot;Dim566&quot;     &quot;Dim567&quot;     &quot;Dim568&quot;     &quot;Dim569&quot;    
+## [571] &quot;Dim570&quot;     &quot;Dim571&quot;     &quot;Dim572&quot;     &quot;Dim573&quot;     &quot;Dim574&quot;    
+## [576] &quot;Dim575&quot;     &quot;Dim576&quot;     &quot;Dim577&quot;     &quot;Dim578&quot;     &quot;Dim579&quot;    
+## [581] &quot;Dim580&quot;     &quot;Dim581&quot;     &quot;Dim582&quot;     &quot;Dim583&quot;     &quot;Dim584&quot;    
+## [586] &quot;Dim585&quot;     &quot;Dim586&quot;     &quot;Dim587&quot;     &quot;Dim588&quot;     &quot;Dim589&quot;    
+## [591] &quot;Dim590&quot;     &quot;Dim591&quot;     &quot;Dim592&quot;     &quot;Dim593&quot;     &quot;Dim594&quot;    
+## [596] &quot;Dim595&quot;     &quot;Dim596&quot;     &quot;Dim597&quot;     &quot;Dim598&quot;     &quot;Dim599&quot;    
+## [601] &quot;Dim600&quot;     &quot;Dim601&quot;     &quot;Dim602&quot;     &quot;Dim603&quot;     &quot;Dim604&quot;    
+## [606] &quot;Dim605&quot;     &quot;Dim606&quot;     &quot;Dim607&quot;     &quot;Dim608&quot;     &quot;Dim609&quot;    
+## [611] &quot;Dim610&quot;     &quot;Dim611&quot;     &quot;Dim612&quot;     &quot;Dim613&quot;     &quot;Dim614&quot;    
+## [616] &quot;Dim615&quot;     &quot;Dim616&quot;     &quot;Dim617&quot;     &quot;Dim618&quot;     &quot;Dim619&quot;    
+## [621] &quot;Dim620&quot;     &quot;Dim621&quot;     &quot;Dim622&quot;     &quot;Dim623&quot;     &quot;Dim624&quot;    
+## [626] &quot;Dim625&quot;     &quot;Dim626&quot;     &quot;Dim627&quot;     &quot;Dim628&quot;     &quot;Dim629&quot;    
+## [631] &quot;Dim630&quot;     &quot;Dim631&quot;     &quot;Dim632&quot;     &quot;Dim633&quot;     &quot;Dim634&quot;    
+## [636] &quot;Dim635&quot;     &quot;Dim636&quot;     &quot;Dim637&quot;     &quot;Dim638&quot;     &quot;Dim639&quot;    
+## [641] &quot;Dim640&quot;     &quot;Dim641&quot;     &quot;Dim642&quot;     &quot;Dim643&quot;     &quot;Dim644&quot;    
+## [646] &quot;Dim645&quot;     &quot;Dim646&quot;     &quot;Dim647&quot;     &quot;Dim648&quot;     &quot;Dim649&quot;    
+## [651] &quot;Dim650&quot;     &quot;Dim651&quot;     &quot;Dim652&quot;     &quot;Dim653&quot;     &quot;Dim654&quot;    
+## [656] &quot;Dim655&quot;     &quot;Dim656&quot;     &quot;Dim657&quot;     &quot;Dim658&quot;     &quot;Dim659&quot;    
+## [661] &quot;Dim660&quot;     &quot;Dim661&quot;     &quot;Dim662&quot;     &quot;Dim663&quot;     &quot;Dim664&quot;    
+## [666] &quot;Dim665&quot;     &quot;Dim666&quot;     &quot;Dim667&quot;     &quot;Dim668&quot;     &quot;Dim669&quot;    
+## [671] &quot;Dim670&quot;     &quot;Dim671&quot;     &quot;Dim672&quot;     &quot;Dim673&quot;     &quot;Dim674&quot;    
+## [676] &quot;Dim675&quot;     &quot;Dim676&quot;     &quot;Dim677&quot;     &quot;Dim678&quot;     &quot;Dim679&quot;    
+## [681] &quot;Dim680&quot;     &quot;Dim681&quot;     &quot;Dim682&quot;     &quot;Dim683&quot;     &quot;Dim684&quot;    
+## [686] &quot;Dim685&quot;     &quot;Dim686&quot;     &quot;Dim687&quot;     &quot;Dim688&quot;     &quot;Dim689&quot;    
+## [691] &quot;Dim690&quot;     &quot;Dim691&quot;     &quot;Dim692&quot;     &quot;Dim693&quot;     &quot;Dim694&quot;    
+## [696] &quot;Dim695&quot;     &quot;Dim696&quot;     &quot;Dim697&quot;     &quot;Dim698&quot;     &quot;Dim699&quot;    
+## [701] &quot;Dim700&quot;     &quot;Dim701&quot;     &quot;Dim702&quot;     &quot;Dim703&quot;     &quot;Dim704&quot;    
+## [706] &quot;Dim705&quot;     &quot;Dim706&quot;     &quot;Dim707&quot;     &quot;Dim708&quot;     &quot;Dim709&quot;    
+## [711] &quot;Dim710&quot;     &quot;Dim711&quot;     &quot;Dim712&quot;     &quot;Dim713&quot;     &quot;Dim714&quot;    
+## [716] &quot;Dim715&quot;     &quot;Dim716&quot;     &quot;Dim717&quot;     &quot;Dim718&quot;     &quot;Dim719&quot;    
+## [721] &quot;Dim720&quot;     &quot;Dim721&quot;     &quot;Dim722&quot;     &quot;Dim723&quot;     &quot;Dim724&quot;    
+## [726] &quot;Dim725&quot;     &quot;Dim726&quot;     &quot;Dim727&quot;     &quot;Dim728&quot;     &quot;Dim729&quot;    
+## [731] &quot;Dim730&quot;     &quot;Dim731&quot;     &quot;Dim732&quot;     &quot;Dim733&quot;     &quot;Dim734&quot;    
+## [736] &quot;Dim735&quot;     &quot;Dim736&quot;     &quot;Dim737&quot;     &quot;Dim738&quot;     &quot;Dim739&quot;    
+## [741] &quot;Dim740&quot;     &quot;Dim741&quot;     &quot;Dim742&quot;     &quot;Dim743&quot;     &quot;Dim744&quot;    
+## [746] &quot;Dim745&quot;     &quot;Dim746&quot;     &quot;Dim747&quot;     &quot;Dim748&quot;     &quot;Dim749&quot;    
+## [751] &quot;Dim750&quot;     &quot;Dim751&quot;     &quot;Dim752&quot;     &quot;Dim753&quot;     &quot;Dim754&quot;    
+## [756] &quot;Dim755&quot;     &quot;Dim756&quot;     &quot;Dim757&quot;     &quot;Dim758&quot;     &quot;Dim759&quot;    
+## [761] &quot;Dim760&quot;     &quot;Dim761&quot;     &quot;Dim762&quot;     &quot;Dim763&quot;     &quot;Dim764&quot;    
+## [766] &quot;Dim765&quot;     &quot;Dim766&quot;     &quot;Dim767&quot;     &quot;Dim768&quot;     &quot;day_sin_1&quot; 
+## [771] &quot;day_cos_1&quot;  &quot;date_sin_1&quot; &quot;date_cos_1&quot; &quot;hour_sin_1&quot; &quot;hour_cos_1&quot;
+## [776] &quot;month_Apr&quot;  &quot;month_Jun&quot;  &quot;month_May&quot;</code></pre>
+</div>
+<div id="task-1.9" class="section level2">
+<h2>Task 1.9</h2>
+<pre class="r"><code>rio::export(baked_data, file = &quot;Vader_HWK1_Task1Data.csv&quot;)</code></pre>
 </div>
 </div>
 <div id="part-2-preprocessing-continuous-and-categorical-variables" class="section level1">
 <h1>Part 2: Preprocessing Continuous and Categorical Variables</h1>
-<div id="task-2.1" class="section level2">
-<h2>Task 2.1</h2>
-</div>
-<div id="task-2.2" class="section level2">
-<h2>Task 2.2</h2>
+<div id="task-2.1-2.2" class="section level2">
+<h2>Task 2.1, 2.2</h2>
+<pre class="r"><code># Task 2.1
+data_edu &lt;- rio::import(&quot;https://raw.githubusercontent.com/uo-datasci-specialization/c4-ml-fall-2021/main/data/oregon.csv&quot;) %&gt;% 
+           characterize() %&gt;% 
+           clean_names() %&gt;% 
+#Task 2.2
+  mutate(month = as.numeric(unglue_vec(tst_dt, &quot;{x}/{y}/{z}&quot;, var = &quot;x&quot;)), 
+         date = as.numeric(unglue_vec(tst_dt, &quot;{x}/{y}/{z}&quot;, var = &quot;y&quot;))) %&gt;%
+  select(-tst_dt) 
+
+data_edu %&gt;% count(date)</code></pre>
+<pre><code>##    date     n
+## 1     1  7490
+## 2     2  3149
+## 3     3  3225
+## 4     4  5876
+## 5     5  2957
+## 6     6  1638
+## 7     7  4569
+## 8     8  5567
+## 9     9  6787
+## 10   10  7930
+## 11   11  6015
+## 12   12   618
+## 13   13   158
+## 14   14  5284
+## 15   15  9072
+## 16   16 10228
+## 17   17 12311
+## 18   18  8452
+## 19   19   912
+## 20   20   623
+## 21   21  8231
+## 22   22 13765
+## 23   23 14749
+## 24   24 15568
+## 25   25  9524
+## 26   26  1507
+## 27   27   863
+## 28   28     1
+## 29   29  6801
+## 30   30  8494
+## 31   31  7062</code></pre>
+<pre class="r"><code>data_edu %&gt;% count(month)</code></pre>
+<pre><code>##   month      n
+## 1     2     33
+## 2     3    421
+## 3     4  13037
+## 4     5 161473
+## 5     6  14462</code></pre>
 </div>
 <div id="task-2.3" class="section level2">
 <h2>Task 2.3</h2>
+<pre class="r"><code>d &lt;- ff_glimpse(data_edu)
+d</code></pre>
+<pre><code>## $Continuous
+##             label var_type      n missing_n missing_percent     mean      sd
+## id             id    &lt;int&gt; 189426         0             0.0 126190.5 72879.8
+## enrl_grd enrl_grd    &lt;int&gt; 189426         0             0.0      5.5     1.7
+## score       score    &lt;int&gt; 189426         0             0.0   2499.0   115.8
+## month       month    &lt;dbl&gt; 189426         0             0.0      5.0     0.4
+## date         date    &lt;dbl&gt; 189426         0             0.0     17.4     8.4
+##             min quartile_25   median quartile_75      max
+## id          1.0     63135.2 126095.5    189261.8 252568.0
+## enrl_grd    3.0         4.0      5.0         7.0      8.0
+## score    1601.0      2421.0   2498.0      2576.0   3550.0
+## month       2.0         5.0      5.0         5.0      6.0
+## date        1.0        10.0     18.0        24.0     31.0
+## 
+## $Categorical
+##                                   label var_type      n missing_n
+## sex                                 sex    &lt;chr&gt; 189426         0
+## ethnic_cd                     ethnic_cd    &lt;chr&gt; 189426         0
+## tst_bnch                       tst_bnch    &lt;chr&gt; 189426         0
+## migrant_ed_fg             migrant_ed_fg    &lt;chr&gt; 189426         0
+## ind_ed_fg                     ind_ed_fg    &lt;chr&gt; 189365        61
+## sp_ed_fg                       sp_ed_fg    &lt;chr&gt; 189365        61
+## tag_ed_fg                     tag_ed_fg    &lt;chr&gt; 188963       463
+## econ_dsvntg                 econ_dsvntg    &lt;chr&gt; 188895       531
+## ayp_lep                         ayp_lep    &lt;chr&gt;  38087    151339
+## stay_in_dist               stay_in_dist    &lt;chr&gt; 188963       463
+## stay_in_schl               stay_in_schl    &lt;chr&gt; 188963       463
+## dist_sped                     dist_sped    &lt;chr&gt; 188963       463
+## trgt_assist_fg           trgt_assist_fg    &lt;chr&gt; 188956       470
+## ayp_dist_partic         ayp_dist_partic    &lt;chr&gt; 189426         0
+## ayp_schl_partic         ayp_schl_partic    &lt;chr&gt; 189426         0
+## ayp_dist_prfrm           ayp_dist_prfrm    &lt;chr&gt; 189426         0
+## ayp_schl_prfrm           ayp_schl_prfrm    &lt;chr&gt; 189426         0
+## rc_dist_partic           rc_dist_partic    &lt;chr&gt; 189426         0
+## rc_schl_partic           rc_schl_partic    &lt;chr&gt; 189426         0
+## rc_dist_prfrm             rc_dist_prfrm    &lt;chr&gt; 189426         0
+## rc_schl_prfrm             rc_schl_prfrm    &lt;chr&gt; 189426         0
+## grp_rpt_dist_partic grp_rpt_dist_partic    &lt;chr&gt; 189426         0
+## grp_rpt_schl_partic grp_rpt_schl_partic    &lt;chr&gt; 189426         0
+## grp_rpt_dist_prfrm   grp_rpt_dist_prfrm    &lt;chr&gt; 189426         0
+## grp_rpt_schl_prfrm   grp_rpt_schl_prfrm    &lt;chr&gt; 189426         0
+##                     missing_percent levels_n levels levels_count levels_percent
+## sex                             0.0        2      -            -              -
+## ethnic_cd                       0.0        7      -            -              -
+## tst_bnch                        0.0        6      -            -              -
+## migrant_ed_fg                   0.0        2      -            -              -
+## ind_ed_fg                       0.0        2      -            -              -
+## sp_ed_fg                        0.0        2      -            -              -
+## tag_ed_fg                       0.2        2      -            -              -
+## econ_dsvntg                     0.3        2      -            -              -
+## ayp_lep                        79.9       10      -            -              -
+## stay_in_dist                    0.2        2      -            -              -
+## stay_in_schl                    0.2        2      -            -              -
+## dist_sped                       0.2        2      -            -              -
+## trgt_assist_fg                  0.2        3      -            -              -
+## ayp_dist_partic                 0.0        2      -            -              -
+## ayp_schl_partic                 0.0        2      -            -              -
+## ayp_dist_prfrm                  0.0        2      -            -              -
+## ayp_schl_prfrm                  0.0        2      -            -              -
+## rc_dist_partic                  0.0        2      -            -              -
+## rc_schl_partic                  0.0        2      -            -              -
+## rc_dist_prfrm                   0.0        2      -            -              -
+## rc_schl_prfrm                   0.0        2      -            -              -
+## grp_rpt_dist_partic             0.0        2      -            -              -
+## grp_rpt_schl_partic             0.0        2      -            -              -
+## grp_rpt_dist_prfrm              0.0        2      -            -              -
+## grp_rpt_schl_prfrm              0.0        2      -            -              -</code></pre>
+<pre class="r"><code>cat_var &lt;- d[[&quot;Categorical&quot;]] %&gt;% 
+  filter(missing_percent &gt; 75) %&gt;% 
+  select(label)
+cat_var</code></pre>
+<pre><code>##           label
+## ayp_lep ayp_lep</code></pre>
+<pre class="r"><code>cont_var &lt;- d[[&quot;Continuous&quot;]] %&gt;% 
+  filter(missing_percent &gt; 75) %&gt;% 
+  select(label)
+cont_var</code></pre>
+<pre><code>## [1] label
+## &lt;0 rows&gt; (or 0-length row.names)</code></pre>
+<pre class="r"><code>#None of the continuous variables are missing more than 75% data
+ 
+data_edu &lt;- data_edu %&gt;% 
+  select(-c(paste(cat_var)))</code></pre>
 </div>
 <div id="task-2.4" class="section level2">
 <h2>Task 2.4</h2>
+<pre class="r"><code>all_CatVar &lt;- rownames(ff_glimpse(data_edu)$Categorical) 
+
+data_edu %&gt;% 
+  select(c(paste(all_CatVar))) %&gt;% 
+  map(., table)</code></pre>
+<pre><code>## $sex
+## 
+##     F     M 
+## 92410 97016 
+## 
+## $ethnic_cd
+## 
+##      A      B      H      I      M      P      W 
+##   7695   4150  45882   2442  11895   1430 115932 
+## 
+## $tst_bnch
+## 
+##    1B    2B    3B    G4    G6    G7 
+## 31512 32771 30257 32773 31639 30474 
+## 
+## $migrant_ed_fg
+## 
+##      N      Y 
+## 184233   5193 
+## 
+## $ind_ed_fg
+## 
+##      N      Y 
+## 187195   2170 
+## 
+## $sp_ed_fg
+## 
+##      N      Y 
+## 163771  25594 
+## 
+## $tag_ed_fg
+## 
+##      N      Y 
+## 178113  10850 
+## 
+## $econ_dsvntg
+## 
+##      N      Y 
+##  80042 108853 
+## 
+## $stay_in_dist
+## 
+##      N      Y 
+##   4650 184313 
+## 
+## $stay_in_schl
+## 
+##      N      Y 
+##   5923 183040 
+## 
+## $dist_sped
+## 
+##      N      Y 
+## 187526   1437 
+## 
+## $trgt_assist_fg
+## 
+##      N      y      Y 
+## 180915     61   7980 
+## 
+## $ayp_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $ayp_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $ayp_dist_prfrm
+## 
+##      N      Y 
+##   5787 183639 
+## 
+## $ayp_schl_prfrm
+## 
+##      N      Y 
+##   8329 181097 
+## 
+## $rc_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $rc_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $rc_dist_prfrm
+## 
+##      N      Y 
+##   5787 183639 
+## 
+## $rc_schl_prfrm
+## 
+##      N      Y 
+##   8329 181097 
+## 
+## $grp_rpt_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $grp_rpt_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $grp_rpt_dist_prfrm
+## 
+##      N      Y 
+##   1387 188039 
+## 
+## $grp_rpt_schl_prfrm
+## 
+##      N      Y 
+##   2821 186605</code></pre>
+<pre class="r"><code>#Notes for Vader - Figure out how to extract variable from a list with a certain level
+
+
+#trgt_assist_fg variable has Yes coded as both ‘y’ and ‘Y’. Lets fix this.
+data_edu &lt;- data_edu %&gt;% 
+  mutate(trgt_assist_fg = recode(trgt_assist_fg, &quot;y&quot; = &quot;Y&quot;))
+
+#Check
+data_edu %&gt;% 
+  select(c(paste(all_CatVar))) %&gt;% 
+  map(., table)</code></pre>
+<pre><code>## $sex
+## 
+##     F     M 
+## 92410 97016 
+## 
+## $ethnic_cd
+## 
+##      A      B      H      I      M      P      W 
+##   7695   4150  45882   2442  11895   1430 115932 
+## 
+## $tst_bnch
+## 
+##    1B    2B    3B    G4    G6    G7 
+## 31512 32771 30257 32773 31639 30474 
+## 
+## $migrant_ed_fg
+## 
+##      N      Y 
+## 184233   5193 
+## 
+## $ind_ed_fg
+## 
+##      N      Y 
+## 187195   2170 
+## 
+## $sp_ed_fg
+## 
+##      N      Y 
+## 163771  25594 
+## 
+## $tag_ed_fg
+## 
+##      N      Y 
+## 178113  10850 
+## 
+## $econ_dsvntg
+## 
+##      N      Y 
+##  80042 108853 
+## 
+## $stay_in_dist
+## 
+##      N      Y 
+##   4650 184313 
+## 
+## $stay_in_schl
+## 
+##      N      Y 
+##   5923 183040 
+## 
+## $dist_sped
+## 
+##      N      Y 
+## 187526   1437 
+## 
+## $trgt_assist_fg
+## 
+##      N      Y 
+## 180915   8041 
+## 
+## $ayp_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $ayp_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $ayp_dist_prfrm
+## 
+##      N      Y 
+##   5787 183639 
+## 
+## $ayp_schl_prfrm
+## 
+##      N      Y 
+##   8329 181097 
+## 
+## $rc_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $rc_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $rc_dist_prfrm
+## 
+##      N      Y 
+##   5787 183639 
+## 
+## $rc_schl_prfrm
+## 
+##      N      Y 
+##   8329 181097 
+## 
+## $grp_rpt_dist_partic
+## 
+##      N      Y 
+##    531 188895 
+## 
+## $grp_rpt_schl_partic
+## 
+##      N      Y 
+##   1966 187460 
+## 
+## $grp_rpt_dist_prfrm
+## 
+##      N      Y 
+##   1387 188039 
+## 
+## $grp_rpt_schl_prfrm
+## 
+##      N      Y 
+##   2821 186605</code></pre>
+<pre class="r"><code># check the distribution of numeric variables and make sure there is no anomaly.
+
+data_edu %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  select(-id, -date, -month) %&gt;% 
+  gather() %&gt;%                            
+  ggplot(aes(value)) +                     # Plot the values
+    facet_wrap(~ key, scales = &quot;free&quot;) +   # In separate panels
+    geom_bar() </code></pre>
+<p><img src="data:image/png;base64,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rffggw9uXbZAgAABAgQIECiKwCOPPJJOOeWUNGvWrIouRfDziCOOSHvssUfF9liJMt/4xjeygGbbnZtsskn64he/mH25nm+PZ6dfcMEF6aqrrlrp/HOfffZJBx10UMWX5D05X+vtOW3eFq8ECBDoiYAAaE+U5CFAgEADC5x88snpD3/4Q1p99dXTvvvum32zH9/0/+IXv0gzZsxITzzxRDrhhBNW6sHll1+eHn/88bTLLrukN73pTSm+wf/1r3+dXSUQAcgIqLYNnEYFl156aXaF6QYbbJAWLVqUpkyZUnFyu9JBerkhArHTp0/Pgp8bbrhhev/7359dpRoztMcJdldXLHTWtqjz9NNPT7feemsW1P3ABz6QVltttfTHP/4xnX/++Std7drLJstOgAABAgQIEGgogfji9ytf+UqKSSrf+973pn//939PS5YsSbfffnv6zW9+k84444w0atSo9La3va213c8880w67rjjsjttdtppp7TjjjtmXyDHuWF88R31xZfQ48ePz744P/HEE9Nf/vKX7I6ivffeO/uSOs45L7vssnTxxRenBx98MH3rW99a6crRzs7XoiF9Padt7YQFAgQIdCEgANoFjl0ECBBodIEIDEbwM24JP++887LXvM3vfve702GHHZZ+//vfpzvuuCO9+c1vzndlrxH8/M///M/0nve8p3V7XA1w6KGHZrfDx63iccLcNsXt9VHnhz70oWzz4sWL2+7u9/JFF12U/vSnP6VNN900ffvb306rrLJKVueuu+6a4uqDOPHuLHXWtjjRvvnmm7PyZ511Vmudu+22W1pnnXWqfgVrZ+2znQABAgQIECBQD4G//vWvWfBzm222SZ///OdbDxnnU2PGjMm+0P7Vr35VEQDNg59x59AnP/nJ1jIRQD3kkEPSk08+mX0Z/YlPfCLFl+gR/IxHLp199tmt558RUI3zz8MPPzy7hT6Oseeee7bWFQudna/155y24gBWCBAg0ImASZA6gbGZAAECzSCQ334eJ6oRBG2b4vb0CPJFiiBg+xQnrXvttVfF5ggIxjNAIz399NMV+2IlvvWPb/nzVO3nf0YwN9KnPvWp1kBlfqwPfvCD2XOo8vX2r5217ZZbbsmyHnjggSvVGY8IiOegSgQIECBAgACBogjEreSRnn/++RTP82ybIoAZjzWKu33yFFd/RoAz7ib6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ECBAgAABAhUCAqAVHFYIECBAgAABAgQIECBAgAABAgQIECiSgABokUZTXwgQIECAAAECBAgQIECAAAECBAgQqBAQAK3gsEKAAAECBAgQIECAAAECBAgQIECAQJEEBECLNJr6QoAAAQIECBAgQIAAAQIECBAgQIBAhYAAaAWHFQIECBAgQIAAAQIECBAgQIAAAQIEiiQgAFqk0dQXAgQIECBAgAABAgQIECBAgAABAgQqBARAKzisECBAgAABAgQIECBAgAABAgQIECBQJAEB0CKNpr4QIECAAAECBAgQIECAAAECBAgQIFAhIABawWGFAAECBAgQIECAAAECBAgQIECAAIEiCQiAFmk09YUAAQIECBAgQIAAAQIECBAgQIAAgQoBAdAKDisECBAgQIAAAQIECBAgQIAAAQIECBRJQAC0SKOpLwQIECBAgAABAgQIECBAgAABAgQIVAgIgFZwWCFAgAABAgQIECBAgAABAgQIECBAoEgCAqBFGk19IUCAAAECBAgQIECAAAECBAgQIECgQkAAtILDCgECBAgQIECAAAECBAgQIECAAAECRRIQAC3SaOoLAQIECBAgQIAAAQIECBAgQIAAAQIVAgKgFRxWCBAgQIAAAQIECBAgQIAAAQIECBAokoAAaJFGU18IECBAgAABAgQIECBAgAABAgQIEKgQEACt4LBCgAABAgQIECBAgAABAgQIECBAgECRBARAizSa+kKAAAECBAgQIECAAAECBAgQIECAQIWAAGgFhxUCBAgQIECAAAECBAgQIECAAAECBIokIABapNHUFwIECBAgQIAAAQIECBAgQIAAAQIEKgQEQCs4rBAgQIAAAQIECBAgQIAAAQIECBAgUCQBAdAijaa+ECBAgAABAgQIECBAgAABAgQIECBQISAAWsFhhQABAgQIECBAgAABAgQIECBAgACBIgkIgBZpNPWFAAECBAgQIECAAAECBAgQIECAAIEKAQHQCg4rBAgQIECAAAECBAgQIECAAAECBAgUSUAAtEijqS8ECBAgQIAAAQIECBAgQIAAAQIECFQICIBWcFghQIAAAQIECBAgQIAAAQIECBAgQKBIAgKgRRpNfSFAgAABAgQIECBAgAABAgQIECBAoEJAALSCwwoBAgQIECBAgAABAgQIECBAgAABAkUSEAAt0mjqCwECBAgQIECAAAECBAgQIECAAAECFQICoBUcVggQIECAAAECBAgQIECAAAECBAgQKJLA0CJ1Rl8IlFFg2rRpZex2v/t8wQUXdFsH226JOs3QE99OC9tBgAABAgQIECBQF4GWlpY0ZcqUuhzLQQgQIDCQAq4AHUh9xyZAgAABAgQIECBAgAABAgQIECBAoKYCAqA15VU5AQIECBAgQIAAAQIECBAgQIAAAQIDKSAAOpD6jk2AAAECBAgQIECAAAECBAgQIECAQE0FBEBryqtyAgQIECBAgAABAgQIECBAgAABAgQGUkAAdCD1HZsAAQIECBAgQIAAAQIECBAgQIAAgZoKCIDWlFflBAgQIECAAAECBAgQIECAAAECBAgMpIAA6EDqOzYBAgQIECBAgAABAgQIECBAgAABAjUVEACtKa/KCRAgQIAAAQIECBAgQIAAAQIECBAYSAEB0IHUd2wCBAgQIECAAAECBAgQIECAAAECBGoqIABaU16VEyBAgAABAgQIECBAgAABAgQIECAwkAICoAOp79gECBAgQIAAAQIECBAgQIAAAQIECNRUQAC0prwqJ0CAAAECBAgQIECAAAECBAgQIEBgIAUEQAdS37EJECBAgAABAgQIECBAgAABAgQIEKipgABoTXlVToAAAQIECBAgQIAAAQIECBAgQIDAQAoIgA6kvmMTIECAAAECBAgQIECAAAECBAgQIFBTAQHQmvKqnAABAgQIECBAgAABAgQIECBAgACBgRQQAB1IfccmQIAAAQIECBAgQIAAAQIDJDB9+vQBOrLDEiBAoL4CAqD19XY0AgQIECBAgAABAgQIECBAgAABAgTqKDC0jsdyKAIECBAgQIAAAQIE6iQwfPjwOh2pMQ8zdOjQNGjQoFR2h3x0ym4xZMiQjGLYsGHZ+yJ3Kdvr4MGvXwMVFpHK+jsSvxPhUdb+x9jnvxexHJ+ZZbaI94LPydc+J+P9UMTfDQHQGFmJAAECBAgQIECAQMEE1lhjjYL1qG/d4fCaWwQ3WKQ0duzYvr2RClhq/PjxWa/K/L5YbbXVUvxIKY0aNSr7KbtFmX8f2o79iBEjUvwUKQmAFmk09YUAAQIECBAgQIDAvwRmz55daos8sDFnzpxSO0yYMCHr/5IlS9K8efNKaxEB4Aj4hUFYlDWtvvrqrVf5PfvssxlDWT8rItC1cOHC9PLLL5f17ZAFfyPwGenFF1/MPMqKMXr06Owq2DJ/TsYVwXkAOH434j3RaCn/P60v7RIA7YuaMgQIECBAgAABAgQaXGDZsmUN3sLaNm/58uXZAcrsELdztk0sUgqDMjusWLGi9S3hdySl8Cjz+yF/D8SbIpbLbJH/bpTZoO3/GUX83Xj9ASCtH4MWCBAgQIAAAQIECBAgQIAAAQIECBAgUAwBAdBijKNeECBAgAABAgQIECBAgAABAgQIECDQgYBb4DtAsYkAAQIEai8wbdq02h+kgEe44IILCtgrXSJAgAABAgQIECBAgEDtBFwBWjtbNRMgQIAAAQIECBAgQIAAAQIECBAgMMACAqADPAAOT4AAAQIECBAgQIAAAQIECBAgQIBA7QTcAl87WzX/S8Btrn1/K7jVte92ShIgQIAAAQIECBAgQIAAAQIEQsAVoN4HBAgQIECAAAECBAgQIECAAAECBAgUVkAAtLBDq2MECBAgQIAAAQIECBAgQOB1gfvuu+/1FUsECBAokYAAaIkGW1cJECBAgAABAgQIECBAgAABAgQIlE1AALRsI66/BAgQIECAAAECBAgQIECAAAECBEokIABaosHWVQIECBAgQIAAAQIECBAgQIAAAQJlExAALduI6y8BAgQIECBAgAABAgQIlFbgb3/7W2n7ruMECJRXQAC0vGOv5wQIECBAgAABAgQIECBQAoGWlpYS9FIXCRAg0LmAAGjnNvYQIECAAAECBAgQIECAAAECBAgQINDkAgKgTT6Amk+AAAECBAgQIECAAAECBAgQIECAQOcCAqCd29hDgAABAgQIECBAgAABAgQIECBAgECTCwiANvkAaj4BAgQIECBAgAABAgQIECBAgAABAp0LCIB2bmMPAQIECBAgQIAAAQIECBAgQIAAAQJNLiAA2uQDqPkECBAgQIAAAQIECBAgQKC9gJnf24tYJ0CgzAICoGUefX0nQIAAAQIECBAgQIAAAQIECBAgUHABAdCCD7DuESBAgAABAgQIECBAgAABAgQIECizgABomUdf3wkQIECAAAECBAgQIECAAAECBAgUXEAAtOADrHsECBAgQIAAAQIECBAgUD6BWbNmla/TekyAAIFOBARAO4GxmQABAgQIECBAgAABAgQIECBAgACB5hcQAG3+MdQDAgQIECBAgAABAgQIECBAgAABAgQ6ERAA7QTGZgIECBAgQIAAAQIECBAgQIAAAQIEml9AALT5x1APCBAgQIAAAQIECBAgQIBArwRaWlp6lV9mAgQINLOAAGgzj562EyBAgAABAgQIECBAgAABAgQIECDQpYAAaJc8dhIgQIAAAQIECBAgQIAAAQIECBAg0MwCQ5u58dpOgAABAgQIrCwwbdq0lTfa0iOBCy64oEf5ZCJAgAABAgQIECBAoHkEXAHaPGOlpQQIECBAgAABAgQIECBAoE8CnvnZJzaFCBAoiEDhrgCdM2dO+slPfpIeeuihtGDBgrTlllum7bbbLu2yyy6dDtmiRYvSpZdemu644440b968NHny5LTtttumPffcMw0ZMqTDco1cpsMG20iAAAECBAgQIECAAAECBAgQIECghAKFCoDeeuut6fjjj08LFy7MhnL06NHpwQcfTD//+c/Te97znvSlL31ppYDm888/nw477LA0a9asrMz48ePTddddl/3cfPPN6YQTTkjDhw+veGs0cpmKhlohQIAAAQIECBAgQIAAAQKvCsTfvHGBkESAAIEyChTmFvjZs2enE088MQt+7rPPPumiiy5KV155ZTrjjDPSBhtskK655pp0zjnnrDTGJ598cvYfwdSpU9NVV12VrrjiivSzn/0sbbzxxul3v/tdOvvss5uqzEqNtYEAAQIECBAgQIAAAQIECBAgQIBAiQUKcwVoXLU5f/78tO6666YjjzwyDR78Wmx3hx12yLafdNJJ6aabbkpHHHFE63Dfd9996bbbbkurrrpqOuWUU9Iqq6yS7Ys6vvOd76QPfehD6dprr02HHnpoiqtJIzVymayB/iFAgAABAgRqJmCCqb7TmmCq73ZKEiBAoLcC7Z/3OX369HTggQf2thr5CRAgUBiBwlwBGgHKt7zlLekTn/hEa/AzH6V3vOMd2eIzzzyTPeMz3x4B0Ug777xza/Az2/DqP3ErfNS3ePHiLAiab2/kMnkbvRIgQIAAAQIECBAgQIAAAQIECBAg8JpAYQKge++9d/r2t7+dPeuz/eA++uij2aZ11lknjRs3rnX3vffemy3H7e8dpQiARvrrX//auruRy7Q20gIBAgQIECBAgAABAgQIEOilQPsrR3tZXHYCBAg0rEBhboHvSDhmar/rrrvSWWedle2OIGnb9NRTT2Wrq6++etvNrcv59nyCpNjRyGVaG26BAAECBAgQIECAAAECBAgQIECAAIFMoLAB0G9961vZretxC/uQIUPSV7/61bTnnntWDPvLL7+creeBzoqdr66MGTMm25Tni5V8uRHLZI1t989RRx2V8itg2+1KMVnUAQcc0H6z9QYSWHPNNRuoNcVqCtvajiff2vmyrZ1t1My3dr71sF2xYkXtOqBmAgQIECBAgACBphUobAD0zjvvzP6Iidnhly5dmk2AtO2226aJEydmg7V8+fJsxvhYySc4aj+Ko0aNyjbFlaSRGrlM1sAO/nn88cdTZ7cxPPfcc2nYsGEdlLKpUQSMT+1Ggm3tbKNmvrXzZVs7W+/d5rcVAK3tGKqdAIHmEOjs778ZM2akmAypoxRlpkyZ0tEu2wgQIFAIgcI8A7T9aFx44YXpoosuSjNnzkwHHXRQ+uMf/5jNenfPPfdkWWOW+Jj9PVIe4MxW2vyTbx8+fHi2tZHLtGm2RQIECBAgQIAAAQIECBAg0GOBzgKjPa5ARgIECDS4QGGvAB00aFBGH1fKfPrTn07/+Mc/smDoj370oxS3x0eKW7Hi+Z7z58/P1tv/k28fOXJk665GLtPayDYLl112WersaohXXnkl/fOf/2yT22KjCRif2o0I29rZRs18a+fLtna23rvFsH3DG95Q246onQABAgUQ+Nvf/tZlL1wR2iWPnQQINKFAYa8AbT8Wu+66a7bpwQcfbN2VP4sqD3S27vjXwosvvpgttZ05vpHLtG9/rA8dOjS7FTUCwe1/4opWiQABAgQIECBAgAABAgTKI/DYY49lnT311FO77HTbW+nbLndZyE4CBAg0qEBhImBxZecpp5ySnnnmmQ6p82emRUAwTxMmTMgWO5skKN+++eab50VSI5dpbaQFAgQIECBAgAABAgQIECDQBwHBzj6gKUKAQMMLFCYAetttt6Vf/epX6be//W2H6HfddVe2ve2DnXffffds2/XXX79SmZjw6De/+U22PSZPylMjl8nb6JUAAQIECBAgQIAAAQIECBAgQIAAgdcEChMAzQOTcSXoU089VTG+EfyMCZEi7b333q37dthhh7TBBhukhx56KF177bWt22MhJlGaO3duWn/99dPUqVNb9zVymdZGWiBAgAABAgQIECBAgAABAgQIECBAIBN4/X7wJgeJwOaf/vSndMstt6QDDjggvfnNb07bbbddevjhh7MrOWMioP322y9FADNPMVHSIYcckr7+9a+n0047LSs7efLkFDPFRz1x2/yXvvSllE+oFOUauUzeL68ECBAgQIAAAQIECBAgQKC3AjFJ8KRJk3pbTH4CBAg0vEBhrgCNwGQ8A/Tggw/OApdxS/y5556bbrjhhrTWWmulk08+OR1xxBErDchOO+2UzjzzzDRx4sR04403pvPOOy8LfsaVoTFb/DbbbNNUZVZqrA0ECBAgQIAAAQIECBAgUGiBaj+3c/r06SmCoRIBAgSKIlCYK0BjQIYPH54++clPpo997GPp73//e5o3b1564xvfmNZYY40uxyuuFL3kkkuyW97jQz4mOoqAaFezpDdymS47aycBAgQIECBAgAABAgQIFF5g9uzZnfYxnwm+0wx2ECBAoGAChQqA5mMTM73HFZzx05sUgdLugqXt62vkMu3bap0AAQIECBAgQIAAAQIECBAgQIBA2QQKcwt82QZOfwkQIECAAAECBAgQIECAQH8Fqn37fH/bozwBAgRqISAAWgtVdRIgQIAAAQIECBAgQIAAgToIdBfAnDZtWh1a4RAECBBobAEB0MYeH60jQIAAAQIECBAgQIAAAQJ1EzD5Ud2oHYgAgToKCIDWEduhCBAgQIAAAQIECBAgQIBArQT6crVn24BnTJzU1eRJtWq3egkQIFBrAQHQWgurnwABAgQIECBAgAABAgQINLhAd7fSN3jzNY8AAQJdCgiAdsljJwECBAgQIECAAAECBAgQaB6Btld0dtbq73//+53tsp0AAQKFFBAALeSw6hQBAgQIECBAgAABAgQIECBAgAABAiEgAOp9QIAAAQIECBAgQIAAAQIECBAgQIBAYQUEQAs7tDpGgAABAgQIECBAgAABAmUR8AzPsoy0fhIg0BcBAdC+qClDgAABAgQIECBAgAABAgQIECBAgEBTCAiANsUwaSQBAgQIECBAgAABAgQIECBAgAABAn0READti5oyBAgQIECAAAECBAgQIECggQQ6mv3dbfENNECaQoDAgAoIgA4ov4MTIECAAAECBAgQIECAAAECBAgQIFBLAQHQWuqqmwABAgQIECBAgAABAgQI1Fmgo6tB69wEhyNAgEBDCQiANtRwaAwBAgQIECBAgAABAgQIEKiNwHHHHVebitVKgACBBhcQAG3wAdI8AgQIECBAgAABAgQIECDQlcD06dO72t3jfTNnzuxxXhkJECDQTAICoM00WtpKgAABAgQIECBAgAABAgQIECBAgECvBARAe8UlMwECBAgQIECAAAECBAgQaAyBas7y3tFzQ6tZf2OIaQUBAmUVEAAt68jrNwECBAgQIECAAAECBAgQIECAAIESCAiAlmCQdZEAAQIECBAgQIAAAQIEyifQ0VWd5VPQYwIECKQkAOpdQIAAAQIECBAgQIAAAQIECiZgQqOCDajuECDQLwEB0H7xKUyAAAECBAgQIECAAAECBIor4DmgxR1bPSNQJgEB0DKNtr4SIECAAAECBAgQIECAAAECBAgQKJmAAGjJBlx3CRAgQIAAAQIECBAgQKAcArNnzy5HR/WSAAEC3QgIgHYDZDcBAgQIECBAgAABAgQIECBAgAABAs0rIADavGOn5QQIECBAgAABAgQIECBQIgHP4yzRYOsqAQJVFRAArSqnyggQIECAAAECBAgQIECAAAECBAgQaCSBoY3UGG0hQIAAAQIECBAgQIAAAQIE+i7guZ99t1OSAIHiCrgCtLhjq2cECBAgQIAAAQIECBAgQIAAAQIESi8gAFr6twAAAgQIECBAgAABAgQIECBAgAABAsUVEAAt7tjqGQECBAgQIECAAAECBAgUXGD69OkF76HuESBAoP8CAqD9N1QDAQIECBAgQIAAAQIECBBoCoHvf//7TdFOjSRAgEA1BQRAq6mpLgIECBAgQIAAAQIECBAgUACBGTNmFKAXukCAAIHXBARAvRMIECBAgAABAgQIECBAgECTC1QrYDlz5swOJaZNm9bhdhsJECDQDAICoM0wStpIgAABAgQIECBAgAABAgTqLOD5onUGdzgCBGomIABaM1oVEyBAgAABAgQIECBAgACB5hCo1hWkzdFbrSRAoGwCAqBlG3H9JUCAAAECBAgQIECAAAECvRCYNWtWL3LLSoAAgcYTEABtvDHRIgIECBAgQIAAAQIECBAgQIAAAQIEqiQgAFolSNUQIECAAAECBAgQIECAAAECBAgQINB4AgKgjTcmWkSAAAECBAgQIECAAAECBBpCwERIDTEMGkGAQD8FBED7Cag4AQIECBAgQIAAAQIECBAgQIAAAQKNKyAA2rhjo2UECBAgQIAAAQIECBAgQIAAAQIECPRTYGg/yytOgAABAgQIECBAoHAC8+bNS7/85S/Tgw8+mJ566qk0ceLE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v7Pn6U2dOjWtssoqrRQxIVKkCy64oOJZcrNnz04//elPs3377rtv9pr/05cyeVmvBAgQIECAAAECvRMwCVLvvOQmQIAAAQIECBAosMD73ve+dNNNN6W//OUv6aCDDkpve9vbUjwT9Oabb0733Xdf2njjjdPXvva1CoGdd945uyL0/vvvTwcffHDaddddU0w4c/3112dB1Khjt91263eZigqsECBAgAABAgQI9FhAALTHVDISIECAAAECBAgUXWDEiBHprLPOSj/84Q/TL37xi3T11VdnXY6Z4SPQefTRR2czi7d1iFviv/e976UzzzwzxeQjF154YbY7tu+zzz7p0EMPTfEM0LapL2XalrdMgACBlpYWCAQIECDQQwEB0B5CyUaAAAECBAgQIFAOgQhO/sd//Ec65JBD0lNPPZXd9h4TGLUPYrbViMDpsccem4455pj0yCOPpBUrVqRJkyalkSNHts1WsdyXMhUVWCFAoHQCMUnblClTStdvHSZAgEB/BQRA+yuoPAECBAgQIECAQCEFBg0alNZbb71e9W3o0KFp0003rXmZXh1AZgIECBAgQIBAyQUq78UpOYbuEyBAgAABAgQIECBAgACBRhZw63sjj462ESDQqAICoI06MtpFgAABAgQIECBAgAABAgQIECBAgEC/BQRA+02oAgIECBAgQIAAAQIECBAgUD+BGTNm1O9gjkSAAIECCAiAFmAQdYEAAQIECBAgQIAAAQIECBAgQIAAgY4FBEA7drGVAAECBAgQIECAAAECBAg0rEDMCD+QybNIB1LfsQkQ6K2AAGhvxeQnQIAAAQIECBAgQIAAAQIlFhD8LPHg6zqBJhUQAG3SgdNsAgQIECBAgAABAgQIECBAgAABAgS6FxjafRY5CBAgQIAAAQIECBAgQIAAgYEUiKsuTX40kCPg2AQINLOAK0CbefS0nQABAgQIECBAgAABAgRKKzB79uzS9l3HCRAg0BsBAdDeaMlLgAABAgQIECBAgAABAgQIECBAgEBTCQiANtVwaSwBAgQIECBAgAABAgQIEHhNYObMmQNCMdAz0A9Ipx2UAIGmFhAAberh03gCBAgQIECAAAECBAgQIECAAAECBLoSEADtSsc+AgQIECBAgAABAgQIECBAgAABAgSaWkAAtKmHT+MJECBAgAABAgQIECBAgEB9BKZPn16fAzkKAQIEqiwgAFplUNURIECAAAECBAgQIECAAIFaC5gBvtbC6idAoEgCAqBFGk19IUCAAAECBAgQIECAAAECBAgQIECgQkAAtILDCgECBAgQIECAAAECBAgQINCZgNvgO5OxnQCBRhYQAG3k0dE2AgQIECBAgAABAgQIECBAgAABAgT6JSAA2i8+hQkQIECAAAECBAgQIECAAAECBAgQaGQBAdBGHh1tI0CAAAECBAgQIECAAIFSC7S0tJS6/zpPgACBaggIgFZDUR0ECBAgQIAAAQIECBAgQIAAAQIECDSkgABoQw6LRhEgQIAAAQIECBAgQIAAAQIECBAgUA0BAdBqKKqDAAECBAgQIECAAAECBAgQIECAAIGGFBAAbchh0SgCBAgQIECAAAECBAgQIECAAAECBKohIABaDUV1ECBAgAABAgQIECBAgAABAgQIECDQkAICoA05LBpFgAABAgQIECBAgAABAgQIECBAgEA1BARAq6GoDgIECBAgQIAAAQIECBAgQIAAAQIEGlJAALQhh0WjCBAgQIAAAQIECBAgQIAAAQIECBCohoAAaDUU1UGAAAECBAgQIECAAAECBKos0NLSUuUaVUeAAIFyCgiAlnPc9ZoAAQIECBAgQIAAAQIECBAgQIBAKQQEQEsxzDpJgAABAgQIECBAgAABAgQIECBAoJwCAqDlHHe9JkCAAAECBAgQIECAAAECBAgQIFAKAQHQUgyzThIgQIAAAQIECBAgQIAAAQIECBAop4AAaDnHXa8JECBAgAABAgQIECBAgAABAgQIlEJAALQUw6yTBAgQIECAAAECBAgQIECgugIxS72Z6qtrqjYCBGojIABaG1e1EiBAgAABAgQIECBAgACBqggIMlaFUSUECJRYQAC0xIOv6wQIECBAgAABAgQIECBAoLcCM2bM6G0R+QkQIDCgAgKgA8rv4AQIECBAgAABAgQIECBAgAABAgQI1FJAALSWuuomQIAAAQIECBAgQIAAAQIECBAgQGBABQRAB5TfwQkQIECAAAECBAgQIECAQNcCs2bN6jqDvQQIECDQpYAAaJc8dhIgQIAAAQIECBAgQIAAAQIECBAg0MwCQ5u58dreP4HBgwenCRMm9K8SpWsqYHxqx8u2drZRM9/a+bKtna33bvPbrlixoradUDsBAgQIECBAgEBTCgiANuWwVafR8UfCggULqlOZWmoiYHxqwppVyrZ2tlEz39r5sq2drfdu89vGuc3o0aNr2xG1EyBAoI4Ccev7pEmT6njE3h2q0dvXu97ITYBAkQUEQIs8ut30Lf5IeOmll7rJZfdACsyfP38gD1/oY7Ot7fDyrZ0v29rZRs18a+dbL1sB0NqNoZoJECDQXmDGjBnpuOOOa7/ZOgECBBpOwDNAG25INIgAAQIECBAgQIAAAQIECBAgQIAAgWoJCIBWS1I9BAgQIECAAAECBAgQIECgigJxhWWjp+nTpzd6E7WPAAECSQDUm4AAAQIECBAgQIAAAQIECBAgQIAAgcIKCIAWdmh1jAABAgQIECBAgAABAgQI1EYgJkCSCBAg0CwCAqDNMlLaSYAAAQIECBAgQIAAAQIECBAgQIBArwUEQHtNpgABAgQIECBAgAABAgQIEKiPgCst6+PsKAQIFFtAALTY46t3BAgQIECAAAECBAgQINCEAi0tLU3Yak0mQIBAYwoIgDbmuGgVAQIECBAgQIAAAQIECBAgQIAAAQJVEBAArQKiKggQIECAAAECBAgQIECAAAECBAgQaEwBAdDGHBetIkCAAAECBAgQIECAAAECBAgQIECgCgICoFVAVAUBAgQIECBAgAABAgQIECirgOeVlnXk9ZtA8wgIgDbPWGkpAQIECBAgQIAAAQIECJREwOzvJRlo3SRAoC4CAqB1YXYQAgQIECBAgAABAgQIECBAgAABAgQGQkAAdCDUHZMAAQIECBAgQIAAAQIECPRQYMaMGT3MKRsBAgQIdCQgANqRim0ECBAgQIAAAQIECBAgQIAAAQIECBRCQAC0EMOoEwQIECBAgAABAgQIECBQRAFXfxZxVPWJAIF6CwiA1lvc8QgQIECAAAECBAgQIECAAAECBAgQqJuAAGjdqB2IAAECBAgQIECAAAECBAgQIECAAIF6CwiA1lvc8QgQIECAAAECBAgQIECAQDcCbn3vBshuAgQI9EJAALQXWLISIECAAAECBAgQIECAAIGBEJg+ffpAHNYxCRAgUAgBAdBCDKNOECBAgAABAgQIECBAgAABAgQIECDQkYAAaEcqthEgQIAAAQIECBAgQIAAAQIECBAgUAgBAdBCDKNOECBAgAABAgQIECBAgEBRBKZNm1aUrugHAQIEGkJAALQhhkEjCBAgQIAAAQIECBAgQIAAAQIECBCohYAAaC1U1UmAAAECBAgQIECAAAECBAgQIECAQEMICIA2xDBoBAECBAgQIECAAAECBAgQIECAAAECtRAQAK2FqjoJECBAgAABAgQIECBAgEAvBTz7s5dgshMgQKCHAgKgPYSSjQABAgQIECBAgAABAgQIECBAgACB5hMQAG2+MdNiAgQIECBAgAABAgQIECBAgAABAgR6KCAA2kMo2QgQIECAAAECBAgQIECAAAECBAgQaD4BAdDmGzMtJkCAAAECBAgQIECAAAECBAgQIECghwICoD2Eko0AAQIECBAgQIAAAQIECBAgQIAAgeYTEABtvjHTYgIECBAgQIAAAQIECBAgQIAAAQIEeiggANpDKNkIECBAgAABAgQIECBAgAABAgQIEGg+AQHQ5hszLSZAgAABAgQIECBAgAABAgQIECBAoIcCAqA9hJKNAAECBAgQIECAAAECBAgQIECAAIHmExAAbb4x02ICBAgQIECAAAECBAgQIECAAAECBHooIADaQyjZCBAgQIAAAQIECBAgQIAAAQIECBBoPgEB0OYbMy0mQIAAAQIECBAgQIAAgYIKTJs2raA90y2sFVTFAABAAElEQVQCBAgMnIAA6MDZOzIBAgQIECBAgAABAgQIECBAgAABAjUWEACtMbDqCRAgQIAAAQIECBAgQIAAAQIECBAYOAEB0IGzd2QCBAgQIECAAAECBAgQIECAAAECBGosIABaY2DVEyBAgAABAgQIECBAgAABAgQIECAwcAICoANn78gECBAgQIAAAQIECBAgQIAAAQIECNRYQAC0xsCqJ0CAAAECBAgQIECAAAECBAgQIEBg4AQEQAfO3pEJECBAgAABAgQIECBAgAABAgQIEKixgABojYFVT4AAAQIECBAgQIAAAQIECBAgQIDAwAkMHbhDOzIBAgQIECBAgAABArUSGDJkSK2qbop6Bw9+7VqPsju0HawyW+R9j9fly5e3ZWna5UGDBnXb9lrmyX/HohGxnBt326gGyhA+zdjuahEWYQyrZZH/rng/vCZaxN8NAdBq/baohwABAgQIECBAgEADCUyYMKGBWjNwTeHwmv2wYcMSi5TGjRs3cG/GKh95tdVW67bGWuYZPXp06/HDtRnfXyNHjkzxI6U0ZsyY7KfsFs34Pq7FmK2yyiopfoqUBECLNJr6QoAAAQIECBAgQOBfAs8991ypLeIPt1VXXTXNmzev1A7jx4/P+r906dL04osvltYiruoaO3ZsZhAWRUgLFy7sthu1zPP973+/9fjx3mq2z5zVV189LVq0KC1YsKC1H2VbiM/JPEj+0ksvpcWLF5eNoLW/EQiPzwmfk2Mzk3gvxHui0VL+f1pf2iUA2hc1ZQgQIECAAAECBAg0uED8YV/mNHTo0LRixYoswFFWh/yWzuh/2S3i/RAp/qhfsmRJttzs/yxbtqzbLtQrz6OPPpo23HDDbtvTSBnidyJ8yvxZmf9exLjEFwNltohgcDwSoMwGbd8PRfzdMAlSI30CawsBAgQIECBAgAABAgQIlFKgpaWlqfvd7O1vanyNJ0CgWwEB0G6JZCBAgAABAgQIECBAgAABAgQIECBAoFkFBECbdeS0mwABAgQIECBAgAABAgQIECBAgACBbgUEQLslkoEAAQIECBAgQIAAAQIECBDoTGDGjBnZLrfBdyZkOwECAy0gADrQI+D4BAgQIECAAAECBAgQIECgAAKzZs3KejFt2rQC9EYXCBAokoAAaJFGU18IECBAgAABAgQIECBAgMAACOTBzwE4tEMSIECgWwEB0G6JZCBAgAABAgQIECBAgAABAgQIECBAoFkFBECbdeS0mwABAgQIECBAgAABAgQINJiA54A22IBoDgECmYAAqDcCAQIECBAgQIAAAQIECBAgQIAAAQKFFRAALezQ6hgBAgQIECBAgAABAgQIEKivwPTp0+t7QEcjQIBADwQEQHuAJAsBAgQIECBAgAABAgQIECBAgAABAs0pIADanOOm1QQIECBAgAABAgQIECBAgAABAgQI9EBAALQHSLIQIECAAAECBAgQIECAAAECBAgQINCcAgKgzTluWk2AAAECBAgQIECAAAECBAgQIECAQA8EBEB7gCQLAQIECBAgQIAAAQIECBAgQIAAAQLNKSAA2pzjptUECBAgQIAAAQIECBAgQKBhBGbPnt0wbdEQAgQItBcQAG0vYp0AAQIECBAgQIAAAQIECBAgQIAAgcIICIAWZih1hAABAgQIECBAgAABAgQINIZAS0tLYzREKwgQIPCqgACotwEBAgQIECBAgAABAgQIECDQbwG3wfebUAUECNRIQAC0RrCqJUCAAAECBAgQIECAAAECBAgQIEBg4AUEQAd+DLSAAAECBAgQIECAAAECBAgQIECAAIEaCQiA1ghWtQQIECBAgAABAgQIECBAgAABAgQIDLyAAOjAj4EWECBAgAABAgQIECBAgAABAgQIECBQIwEB0BrBqpYAAQIECBAgQIAAAQIECJRJYObMmWXqrr4SINBEAgKgTTRYmkqAAAECBAgQIECAAAECxROYNm1a8TqlRwQIEGggAQHQBhoMTSFAgAABAgQIECBAgAABAgQIECBAoLoCAqDV9VQbAQIECBAgQIAAAQIECBAgQIAAAQINJCAA2kCDoSkECBAgQIAAAQIECBAgQIAAAQIECFRXQAC0up5qI0CAAAECBAgQIECAAAECBAgQIECggQQEQBtoMDSFAAECBAgQIECAAAECBAgQIECAAIHqCgiAVtdTbQQIECBAgAABAgQIECBAgAABAgQINJCAAGgDDYamECBAgAABAgQIECBAgAABAgQIECBQXQEB0Op6qo0AAQIECBAgQIAAAQIECBAgQIAAgQYSEABtoMHQFAIECBAgQIAAAQIECBAgQIAAAQIEqisgAFpdT7URIECAAAECBAgQIECAAAECBAgQINBAAgKgDTQYmkKAAAECBAgQIECAAAECBAgQIECAQHUFBECr66k2AgQIECBAgAABAgQIECBA4FWBlpYWDgQIEGgIAQHQhhgGjSBAgAABAgQIECBAgAABAgQIECBAoBYCAqC1UFUnAQIECBAgQIAAAQIECBAoscCsWbNK3HtdJ0Cg0QQEQBttRLSHAAECBAgQIECAAAECBEonMH369NL1WYcJECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECBAgAABAnUXEACtO7kDEiBAgAABAgQIECBAgAABAgQIECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECBAgAABAnUXEACtO7kDEiBAgAABAgQIECBAgAABAgQIECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECBAgAABAnUXEACtO7kDEiBAgAABAgQIECBAgAABAgQIECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECBAgAABAnUXEACtO7kDEiBAgAABAgQIECBAgAABAgQIECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECBAgAABAnUXEACtO7kDEiBAgAABAgQIECBAgAABAgQIECBQLwEB0HpJOw4BAgQIECBAgAABAgQIECiJwIwZM0rSU90kQKAZBARAm2GUtJEAAQIECBAgQIAAAQIECBAgQIAAgT4JDO1TqQYuNHfu3HTxxRenRx55JD3zzDNpwoQJacMNN0z77bdfWmuttTps+aJFi9Kll16a7rjjjjRv3rw0efLktO2226Y999wzDRkypOnKdNhgGwkQIECAAAECBAgQIECAAAECBAiUUKBQAdCbbropnXbaaWnBggVZ4HKNNdZIf/7zn9Ntt92WfvnLX6Yvf/nLaffdd68Y5ueffz4ddthhadasWdn28ePHp+uuuy77ufnmm9MJJ5yQhg8f3jRlKhpqhQABAgQIECBAgAABAgQIECBAgEDJBQpzC/xTTz3VGvycNm1a+tWvfpUuu+yy7PUTn/hEFhQ9/fTTWwOd+biffPLJ2bapU6emq666Kl1xxRXpZz/7Wdp4443T7373u3T22WfnWVtfG7lMayMtECBAgAABAgQIECBAgAABAgQIECCQChMAvfLKK7Mg5zvf+c70qU99Ko0YMSIb3ng95JBD0i677JIWLlyYIl+e7rvvvuzq0FVXXTWdcsopaezYsdmuddddN33nO9/JriK99tpr0/z58/MiqZHLtDbSAgECBAgQIECAAAECBAg0tEBcuCMRIECAQH0EChMAveuuuzKxd7zjHR3KxRWekR5++OHW/XHLfKSdd945rbLKKtly/k/cCv+Wt7wlLV68OEUQNE+NXCZvo1cCBAgQIECAAAECBAgQaA6BlpaW5mioVhIgQKCJBQoTAI1b1S+66KK0ww47dDgczz33XLZ99dVXb91/7733Zst5cLR1x78WIgAa6a9//eu/tqTUyGVaG2mBAAECBAgQIECAAAECBAgQIECAAIFMoDCTIMWt7uuss06Hw7p06dLWqzi33HLL1jzx3NBIbYOirTvbbM8nSIp9jVymbdvz5RtuuCHFRE8dpQ033DBttNFGHe2yrUEE4vEMUm0E2NbGNa+Vby5R/Ve21TdtWyPfthrVXWZbXU+1ESBAoFkE4grXKVOmNEtztZMAgYIKFCYA2tX4nHvuuenvf/97imd7vve9723N+vLLL2fLnQVAx4wZk+3P88VKvtyIZbLGtvsnrox94IEH2m19bfUzn/lM2n777TvcZ2NjCHT2PmuM1jV3K9jWdvz41s6Xbe1so2a+tfOth+2KFStq1wE1EyBAgAABAgQINK1AYW6B72wEYkb3+Bk8eHD6yle+0vqsz+XLl2eTIkW50aNHd1h81KhR2fZFixZlr41cpsMO2EiAAAECBAgQIECAAAECBAZQoO0dlQPYDIcmQKDkAoW+AvS8885LP/7xj7Pg5/HHH5+22Wab1uGOgGjcirVgwYKUBzhbd/5rId8+fPjwbEsjl2nf9nz9oIMOSnPmzMlXK1632GKL9OKLL1Zss9JYAsanduPBtna2UTPf2vmyrZ2t924xbPM7eGrbG7UTIECgegJFDhBOnz49HXjggdXDUhMBAgT6KFDIAOiSJUvS6aefnmbOnJkiePn1r389m+m9vdGaa66Z4j+b+fPnt9+VrefbR44c2bq/kcu0NrLNwt57791mrXIx+vfSSy9VbrTWUAL5IxcaqlEFaQzb2g4k39r5sq2dbdTMt3a+9bIVAK3dGKqZAAECBAgQINCsAoW7BT6Cel/4whey4GecAJ911lkdBj9jwCKYGSkPdGYrbf7Jr7IZN25c69ZGLtPaSAsECBAgQIAAAQIECBAgQIAAAQIECGQChQqARsDyyCOPTHfddVdab7310g9+8IO09dZbdzrUEyZMyPY9+uijHebJt2+++eat+xu5TGsjLRAgQIAAAQIECBAgQIAAAQIECBAgkAkUJgAas34ee+yx6ZFHHkmbbrppFvycNGlSl8O8++67Z/uvv/76lfLFhEe/+c1vsu3bbrtt6/5GLtPaSAsECBAgQIAAAQIECBAgQIAAAQIECGQChQmAXnnllemee+7Jbms/44wz0tixY7sd4h122CFtsMEG6aGHHkrXXnttRf4LL7wwzZ07N62//vpp6tSprfsauUxrIy0QIECAAAECBAgQIECAAIEGEpg2bVoDtUZTCBAom0AhJkGK2drjdvdIMeN5VxP/bLLJJun888/P8g4aNCgdcsgh2SRJp512WrrlllvS5MmTs0BqLA8bNix96UtfSpEvT41cJm+jVwIECBAgQIAAAQIECBAgQIAAAQIEXhMoRAD0scceq5jIaNmyZZ2O79KlSyv27bTTTunMM89MEQC98cYbs5/IEFeGfv7zn0/bbLNNRf5YaeQyKzXWBgIECBAgQIAAAQIECBBoWIHZs2c3bNs0jAABAkURKEQAdLPNNku///3v+zwm2223XbrkkkuyW95nzZqVYqKjiRMnpsGDO39CQCOX6TOEggQIECBAgAABAgQIECBQN4G4Lfzd73533Y7nQAQIECirQCECoNUavDXWWCPFT29SI5fpTT/kJUCAAAECBAgQIECAAAECBAgQIFBEgc4vcSxib/WJAAECBAgQIECAAAECBAgQIECAAIFSCQiAlmq4dZYAAQIECBAgQIAAAQIECBAgQIBAuQQEQMs13npLgAABAgQIECBAgAABAgQIECBAoFQCAqClGm6dJUCAAAECBAgQIECAAAECBAgQIFAuAQHQco233hIgQIAAAQIECBAgQIAAAQIECBAolYAAaKmGW2cJECBAgAABAgQIECBAgAABAgQIlEtAALRc4623BAgQIECAAAECBAgQIECAAAECBEolIABaquHWWQIECBAgQIAAAQIECBAgQIAAAQLlEhAALdd46y0BAgQIECBAgAABAgQIECBAgACBUgkIgJZquHWWAAECBAgQIECAAAECBAgQIECAQLkEBEDLNd56S4AAAQIECBAgQIAAAQIECBAgQKBUAgKgpRpunSVAgAABAgQIECBAgAABAvUTmDFjRv0O5kgECBDoREAAtBMYmwkQIECAAAECBAgQIECAAAECBAgQaH4BAdDmH0M9IECAAAECBAgQIECAAAECBAgQIECgEwEB0E5gbCZAgAABAgQIECBAgAABAgQIECBAoPkFBECbfwz1gAABAgQIECBAgAABAgQIECBAgACBTgQEQDuBsZkAAQIECBAgQIAAAQIECBAgQIAAgeYXEABt/jHUAwIECBAgQIAAAQIECBAgQIAAAQIEOhEQAO0ExmYCBAgQIECAAAECBAgQIECAAAECBJpfQAC0+cdQDwgQIECAAAECBAgQIECAAAECBAgQ6ERAALQTGJsJECBAgAABAgQIECBAgAABAgQIEGh+AQHQ5h9DPSBAgAABAgQIECBAgAABAgQIECBAoBOBoZ1st5kAAQIECBAgQIAAgVcFVqxYkU466aQ0a9asdOqpp6a11167Q5cHHnggXXLJJemJJ55II0eOTFtvvXXabbfd0kYbbdRh/tjYlzKdVmYHAQIECBAgQIBAhwICoB2y2EiAAAECBAgQIEDgNYGLLrooXX/99dnK4sWLO2S59NJL03e/+91s36hRo1Lku/POO9PFF1+cTj/99LT99tuvVK4vZVaqxAYCBAgQIECAAIFuBdwC3y2RDAQIECBAgAABAmUVePjhh9O5557bZffvueeedPbZZ6fhw4dnV4hec8016brrrkuf+9zn0oIFC9IxxxyTnn766Yo6+lKmogIrBAgQIECAAAECPRYQAO0xlYwECBAgQIAAAQJlEli0aFF26/vQoUOz4GZnff/Rj36U3SZ/4IEHpp122ikNGjQoDRs2LO27775pn332SUuWLEmXX355RfG+lKmowAoBAgQIECBAgECPBQRAe0wlIwECBAgQIECAQJkEfvCDH6THHnssHXnkkWm11VbrsOuvvPJKuu2227J9e+yxx0p58m1XXXVVWrp0aba/L2VWqtgGAgQINJHAtGnTKlrb0tJSsW6FAAECtRYQAK21sPoJECBAgAABAgSaTuD2229P8YzOt771rekDH/hAp+2///77s6s/J02alNZZZ52V8m222WZp9OjR6YUXXkhPPvlktr8vZVaq2AYCBAgQIECAAIEeC5gEqcdUMhIgQIAAAQIECJRBIIKVMdv72LFj07HHHttll5966qls/+qrr95pvtg3f/78bBb5mBG+L2U6qvzXv/51Ov/88zvalcaNG5c9l7TDnSXZOHjw4OxxBGussUZJetx1N4cMGZLKbBGPpogUv9crVqzoGqvOe1ddddU+HbEn5RotT/4ejHHIl/vU+SoUis+I8InnN5c1hUGeYgK/zu52yPMU+TU+I+NzYqDflwNpnH9ORhtGjBhROAsB0IF8dzk2AQIECBAgQIBAwwmcccYZae7cuVkQdPz48V227+WXX872dxUAHTNmTJYnz5u/9qZMR42YM2dO+stf/tLRrrTWWmuV+o/6tihlDm60dYhAB4uUPZ+3rUsjLLcNQvWmPT0p12h58vdgd89W7o1Df/JG0Ct+pJRiTKTkc/Jfb4Ii/p/xerjfO50AAQIECBAgQIBAyQWuvvrq9Nvf/jbttdde2YRG3XHE8zwjxW3unaW4qibSwoULs9e+lMkK+ocAAQIECBAgQKBPAkL8fWJTiAABAgQIECBAoGgC//jHP9J3v/vdNHHixHTUUUf1qHsjR47M8i1evLjT/DGbfKS4nSxSX8pkBdv98+EPfzgL1LbbnK3GlRtPP/10R7tKsy1u5Yzg8+zZs0vT5/YdjdsZ11577WzzkiVLsiub2+cpy3pc3bbmmmtmBmHRSCn/UqS3bepJuUbLk38uPffccwP+GRVXyi9YsCC99NJLvaUv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ent7a9VejSVAgEARBTr+FPjbbrstHXbYYen6669PZ5xxRjrvvPPSS1/60rTZZpul9dZbb6UGMXp07733Xuk+NhIgQIAAAQIECBAgQIAAAQLlFOjr6ytn4KImQKDUAh1PgB5zzDHpsssuG0D585//nK644oqB5ZXNTJ8+XQJ0ZUC2ESBAgAABAgQIECBAgAABAgQIECAwJoGOXwI/pqPbmQABAgQIECBAgAABAgQIECBAgAABAl0U6PgI0O9+97tp6dKlbYU8c+bMtsopRIAAAQIECBAgQIAAAQIECBAgQIAAgWYCHU+Azp49u9lxrCNAgAABAgQIECBAgAABAgQIECBAgMCEC7gEfsLJHZAAAQIECBAgQIAAAQIE6iYwb968ujVZewkQIFAYgY6PAL3rrrvSo48+2lYDN9lkk7Txxhu3VVYhAgQIECBAgAABAgQIECBAgAABAgQIDBXoeAL0Ix/5yKCnwA894MqWP/3pT6fjjjtuZbvYRoAAAQIECBAgQIAAAQIECBAgQIAAgZYFXALfMpUdCRAgQIAAAQIECBAgQIDA2AV6e3vHXkgJAgQIEOiYQMdHgB555JHpbW9724gBLlu2LD3++OPp3nvvTT/84Q+z19e//vXpq1/9alpzzTVHLGcDAQIECBAgQIAAAQIECBAgQIAAAQIExirQ8QTovvvu23IMxx9/fHrrW9+aXTJ/yimnpNNOO63lsnYkQIAAAQIECBAgQIAAAQIECBAgQIDAaAKTegl8jPi87LLLsgcffeELX0hXXXXVaPHaToAAAQIECBAgQIAAAQIESiUwf/78UsUrWAIECFRNYFIToIE5Y8aM9LrXvS5z/clPflI1X+0hQIAAAQIECBAgQIAAAQIECBAgQGASBSY9ARpt33777TOCa6+9dhIpHJoAAQIECBAgQIAAAQIECBAgQIAAgaoJFCIBes0112Suq6yyStV8tYcAAQIECBAgQIAAAQIECAwI9PX1DcybIUCAAIGJEZj0BGjcA/TKK6/MWvuyl71sYlrtKAQIECBAgAABAgQIECBAgAABAgQI1EKg40+B//73v5/uueeeleItXbo0Pf300+mmm25Kl1xySbbvlClT0t/93d+ttJyNBAgQIECAAAECBAgQIECAQLkF+vv7y90A0RMgUDqBjidAv/a1r2VPdh+rxNFHH5322GOPsRazPwECBAgQIECAAAECBAgQIECAAAECBEYU6HgCdMQjjbBh5513TkcccUR6z3veM8IeVhMgQIAAAQIECBAgQIAAAQIECBAgQKA9gY4nQM8555y0cOHCUaOJBx6ttdZaafXVVx91XzsQIECAAAECBAgQIECAAAEC1RGYN29eivyBiQABAhMh0PEE6Prrrz8RcTsGAQIECBAgQIAAAQIECBAonUBPT0/pYhYwAQIEyi4w6U+BLzug+AkQIECAAAECBAgQIECAAIGxC/T29o69kBIECBBoQ6DjI0BHiuHJJ59Md999d1p11VVTjBJde+21Uzz53USAAAECBAgQIECAAAECBAgQIECAAIFuCXR1BOhtt92W3vzmN6e5c+emNdZYI+20005pu+22S+uss05ab7310mGHHZZuvPHGbrVNvQQIECBAgAABAgQIECBAgEBBBfr6+goambAIEKiaQFcSoEuXLk0f//jHUzzh/aKLLkr333//MLeHHnoonX322Wn33XdPJ5988rDtVhAgQIAAAQIECBAgQIAAAQIECBAgQGC8Al25BP7EE08cSGrGZe6vec1r0jbbbJM222yz9PTTT6f77rsv3XzzzemWW25JebJ0ww03TO9617vG2x7lCRAgQIAAAQIECBAgQIAAAQIECBAgMCDQ8QToTTfdlCIBGtMrX/nKdOaZZ2YjQQeO2DBz8cUXp3/5l39J9957b/rABz6Q3vjGN6a11lqrYQ+zBAgQIECAAAECBAgQIECAAAECBAgQaF+g45fAn3766WnJkiVpiy22SJdeeumIyc8I+Q1veEOKJOjqq6+e4iFJ5557bvstUZIAAQIECBAgQIAAAQIECBAgQIAAAQJDBDqeAI3L2mM67rjjWhrN+ZKXvCS9973vzcpcffXV2av/CBAgQIAAAQIECBAgQIAAgeoJ9Pf3V69RWkSAQOEFOpoAXbZsWbr99tuzRu+6664tNz7fN+4NaiJAgAABAgQIECBAgAABAgQIECBAgECnBDqaAJ06dWqaPv3Z24o+9dRTLccYD0aKac6cOS2XsSMBAgQIECBAgAABAgQIECBQPoEFCxaUL2gREyBQaoGOJkDjie/bbrttBvKzn/2sZZhrr70223eHHXZouYwdCRAgQIAAAQIECBAgQIBAUQV6e3uLGtqkxiX5Oan8Dk6gtgIdTYCG4m677ZZhfvrTn0733HPPqLD//d//PfDwo5133nnU/e1AgAABAgQIECBAgAABAgQIECBAgACBVgU6ngD95Cc/mWbPnp0ee+yxtNdee6Wvf/3rKe4NOnR64okn0vHHH58OPPDAtGLFihSjP9/+9rcP3c0yAQIECBAgQIAAAQIECBAopYBRoKN327x580bfyR4ECBAYp8CzN+wcZyWNxTfaaKM0f/789KEPfSjdf//92RPejzrqqLTlllumzTffPC1evDj97ne/S3fffXfK7/25yiqrpG9+85tpxowZjVWZJ0CAAAECBAgQIECAAAECBCoq4InwFe1YzSJQQIGOJ0CjjR/84AfTNttskw455JAsCfrII4+kG2+8Mfs31GCnnXZKZ555ZnL5+1AZywQIECBAgAABAgQIECBAgAABAgQIjFegKwnQCOq1r31t+s1vfpO+9KUvZa933HFHuvPOO1OM9txqq62yf/vss0+K4e7Tpk0bbzuUJ0CAAAECBAgQIECAAAECBAgQIECAwDCBriVA40hz5sxJH/nIR9LMmTOzA8e9PuNJ8TFdd9112X0/JT8zDv8RIECAAAECBAgQIECAAAECBAgQINAFgY4/BCmP8dprr01veMMb0i677JKvGkh+xoqDDz44rbvuuumd73xnevjhhwf2MUOAAAECBAgQIECAAAECBKoi0NfXV5WmaAcBAgRKK9CVBGg8+X3fffdNl1xySYqn3sWDjxqn5cuXp/vuuy8tXLgwffvb304vfelL02233da4i3kCBAgQIECAAAECBAgQIECAAAECBAiMW6DjCdC77rorve9970tLlizJgttvv/2GJUBjww9+8IN0+OGHp6lTp2ZPhX/3u9+dIjFqIkCAAAECBAgQIECAAAECBAgQIECAQKcEOp4APeGEE9LSpUvTBhtskH784x+nSy+9NM2ePXtQvJH0POCAA9KXv/zldOWVV6bp06dnT4g/99xzB+1ngQABAgQIECBAgAABAgQIECBAgAABAuMR6HgC9Be/+EUWTzzdPZ7yPtq09957p0MPPTTb7Sc/+clou9tOgAABAgQIECBAgAABAgQIECBAgACBlgU6mgBdtmxZdjl7HP3tb397y0G8+tWvzva94447Wi5jRwIECBAgQIAAAQIECBAgQIAAAQIECIwm0NEE6JQpU7J7esZB4zL4Vqdnnnkm23XmzJmtFrEfAQIECBAgQIAAAQIECBAgUGKBBQsWlDh6oRMgUCaBjiZA496em266adb+n/70py07/PznP8/23XHHHVsuY0cCBAgQIECAAAECBAgQIECAAAECBAiMJjB9tB3Guv1Nb3pT+vznP5+OO+647EFHW2+99UqriIcgfeMb38j2eelLX7rSfW3srECM2J01a1ZnK1VbRwX0T0c5B1XGdhBHxxf4dpx0oEK2AxRdmeHbFdas0omwXbFiRfcaoGYCBAgQIECAAIHSCnQ8Afr+978/nXXWWemJJ55Iu+++ezryyCPT4YcfntZff/0BpPhwet9996UvfOEL6Stf+Upavnx5etnLXjam+4YOVGambYEYsTsRf4y0HaCCaY011qDQJQG2XYJ9rlq+3fNl2z3bqJlv93wnwlYCtHv9p2YCBAh0U6C3tzeNNniqm8dXNwEC1RfoeAL0RS96Ufr3f//3dMghh6RHHnkkfepTn8r+RaJt7ty5afHixemBBx5IixYtGtBdbbXV0re+9a00fXrHwxk4hpnhAvHQqgcffHD4BmsKI6B/utcVbLtnGzXz7Z4v2+7ZOnerYbvRRht1tyFqJ0CAAAECBAgQKJ1AR+8Bmrd+3rx56cILL0ybbLJJvio99dRT6c4770z33HPPoOTn3//936ebb745bbvttgP7miFAgAABAgQIECBAgAABAgQIECBAgEAnBLo25DLuBbrffvuluMfnpZdemiU+//SnP6XVV189xSjR+PfqV7867b333p1ohzoIECBAgAABAgQIECBAgEDhBPr7+wsXk4AIECBQN4GuJUADcubMmSlGeMY/EwECBAgQIECAAAECBAgQIECAAAECBCZaoCuXwE90IxyPAAECBAgQIECAAAECBAgQIECAAAECzQQkQJupWEeAAAECBAgQIECAAAECBAgQIECAQCUEJEAr0Y0aQYAAAQIECBAgQIAAAQJFE+jr6ytaSOIhQIBALQUkQGvZ7RpNgAABAgQIECBAgAABAgQIECBAoB4CEqD16GetJECAAAECBAgQIECAAAECBAgQIFBLAQnQWna7RhMgQIAAAQIECBAgQIAAgWIIuFVAMfpBFASqLCABWuXe1TYCBAgQIECAAAECBAgQIECAAAECNReQAK35CaD5BAgQIECAAAECBAgQIECAAAECBKosIAFa5d7VNgIECBAgQIAAAQIECBAgQIAAAQI1F5AArfkJoPkECBAgQIAAAQIECBAgQIAAAQIEqiwgAVrl3tU2AgQIECBAgAABAgQIECBAgAABAjUXkACt+Qmg+QQIECBAgAABAgQIECBAgAABAgSqLCABWuXe1TYCBAgQIECAAAECBAgQIECAAAECNReQAK35CaD5BAgQIECAAAECBAgQIECAAAECBKosIAFa5d7VNgIECBAgQIAAAQIECBAgQIAAAQI1F5AArfkJoPkECBAgQIAAAQIECBAgQIAAAQIEqiwgAVrl3tU2AgQIECBAgAABAgQIEJg0gf7+/kk7tgMTIECAwPMCEqDPW5gjQIAAAQIECBAgQIAAAQIEJkmgt7d3ko7ssAQIVF1AArTqPax9BAgQIECAAAECBAgQIECAAAECBGosIAFa487XdAIECBAgQIAAAQIECBAgQIAAAQJVF5AArXoPax8BAgQIECBAgAABAgQIECiwgHulFrhzhEagIgISoBXpSM0gQIAAAQIECBAgQIAAAQIECBAgQGC4gATocBNrCBAgQIAAAQIECBAgQIAAAQIECBCoiIAEaEU6UjMIECBAgAABAgQIECBAgAABAgQIEBguIAE63MQaAgQIECBAgAABAgQIECDQEYEFCxZ0pB6VECBAgED7AtPbL6okAQIECBAgQIAAAQJFFdhwww2LGtqExsXhWe7p06cnFimts846E3b+/eUvf0mzZs0a9Xit7NOsklbKlWWfiDPOzzCbyPM0jtuKUTP/qq2bM2dOin91nyby/Cuy9cyZMyf0Z3EiLCRAJ0LZMQgQIECAAAECBAhMsMDjjz8+wUcs1uFWXXXVFP/q7pAnNJYvX56efPLJYnXSBEYzderUtMYaa6SnnnoqLVu2rOtHvvPOO7NjLFq0aNRjtbJPs0paKVeWfSLO+Fl9+umnJ+xnNs6HxYsXp1aMmvlXYV28R0aiK6aFCxemJUuWVKFZbbVhtdVWS9OmTfM++defi5iWLl2a/Ty2hdnFQvnvtHYOIQHajpoyBAgQIECAAAECBAouEImEOk9TpkxJM2bMKOQfcBPVL2GQ/7EYCdA6nxMxAjYSXs8888yEJHniODFFEmG0qZV9mtXRSrmy7BNxvu1tb0vHHHNMuvnmm9PWW2/drMkdXTd79uzCJnk62tCVVBbvEXkCNJLBkQSt67TKKquk8PA+Wd0EqHuA1vWnW7sJECBAgAABAgQIECBAgAABAgQI1EBAArQGnayJBAgQIECAAAECBAgQIECAAAECBOoqIAFa157XbgIECBAgQIAAAQIECBAgUCCBvr6+AkUjFAIEqiQgAVql3tQWAgQIECBAgAABAgQIECBAgAABAgQGCUiADuKwQIAAAQIECBAgQIAAAQIECBAgQIBAlQQkQKvUm9pCgAABAgQIECBAgAABAgQIECBAgMAgAQnQQRwWCBAgQIAAAQIECBAgQIBA+wLz5s1rv7CSBAgQINAVAQnQrrCqlAABAgQIECBAgAABAgTqLOCBPnXufW0nQKBoAhKgResR8RAgQIAAAQIECBAgQIAAAQIECBAg0DEBCdCOUaqIAAECBAgQIECAAAECBAg8K9Df34+CAAECBAoiIAFakI4QBgECBAgQIECAAAECBAhUQ8Dl72PrxwULFmQFJI3H5mZvAgRaF5AAbd3KngQIECBAgAABAgQIECBAgAABAgQIlExAArRkHSZcAgQIECBAgAABAgQIECBAgAABAgRaF5AAbd3KngQIECBAgAABAgQIECBAgAABAgQIlExAArRkHSZcAgQIECBAgAABAgQIECi+QH5fy+JHKkICBAhUX0ACtPp9rIUECBAgQIAAAQIECBAgQIAAAQIEaisgAVrbrtdwAgQIECBAgAABAgQIECBAgAABAtUXkACtfh9rIQECBAgQIECAAAECBAgQKLyA2wYUvosESKC0AhKgpe06gRMgQIAAAQIECBAgQIAAgWoJ9PX1pd7e3mo1SmsIEJh0AQnQSe8CARAgQIAAAQIECBAgQIBAFQQk7qrQi9pAgEAVBSRAq9ir2kSAAAECBAgQIECAAAECBAgQIECAQCYgAepEIECAAAECBAgQIECAAAECHRCIy7dNBAgQIFA8AQnQ4vWJiAgQIECAAAECBAgQIECgxAI9PT0ljl7oBAgQqJ6ABGj1+lSLCBAgQIAAAQIECBAgQIBAKQX6+/tLGbegCRAotoAEaLH7R3QECBAgQIAAAQIECBAgQIAAAQIECIxDQAJ0HHiKEiBAgAABAgQIECBAgAABAt0R6O3t7U7FaiVAoHYCEqC163INJkCAAAECBAgQIECAAAECBAgQIFAfAQnQ+vS1lhIgQIAAAQIECBAgQIAAAQIECBConYAEaO26XIMJECBAgAABAgQIECBAgECxBVz+Xuz+ER2BsglIgJatx8RLgAABAgQIECBAgAABAoUU6OnpKWRcgiJAgEDdBSRA634GaD8BAgQIECBAgAABAgQIECBAgACBCgtIgFa4czWNAAECBAgQIECAAAECBAgQIECAQN0FJEDrfgZoPwECBAgQIECAAAECBAgQIECAAIEKC0iAVrhzNY0AAQIECBAgQIAAAQIECJRNoK+vr2whi5cAgYILSIAWvIOER4AAAQIECBAgQIAAAQLFF5g3b17xgxQhAQIEaiogAVrTjtdsAgQIECBAgAABAgQIECBAgAABAnUQkACtQy9rIwECBAgQIECAAAECBAgQIECAAIGaCkiA1rTjNZsAAQIECBAgQIAAAQIECBAgQIBAHQQkQOvQy9pIgAABAgQIECBAgAABAgQIECBAoKYCEqA17XjNJkCAAAECBAgQIECAAAECBAgQIFAHAQnQOvSyNhIgQIAAAQIECBAgQIAAAQIECBCoqYAEaE07XrMJECBAgAABAgQIECBAYPwCvb29469EDQQIECDQVQEJ0K7yqpwAAQIECBAgQIAAAQIECBAgQIAAgckUkACdTH3HJkCAAAECBAgQIECAAAECBAgQIECgqwISoF3lVTkBAgQIECBAgAABAgQIECBAgAABApMpIAE6mfqOTYAAAQIECBAgQIAAAQKlFujr6yt1/IInQIBAHQQkQOvQy9pIgAABAgQIECBAgAABAgQIECBAoKYCEqA17XjNJkCAAAECBAgQIECAAAECBAgQIFAHAQnQOvSyNhIgQIAAAQIECBAgQIAAgZIK9Pb2ljRyYRMgUBQBCdCi9IQ4CBAgQIAAAQIECBAgQIAAAQIECBDouIAEaMdJVUiAAAECBAgQIECAAAECBAgQIECAQFEEJECL0hPiIECAAAECBAgQIECAAIFSCrhEuzvd1tfX152K1UqAQO0EpteuxRpMgAABAgQIECBAgAABAgQIFFagp6cni+3ggw8ubIwCI0CgXAJGgJarv0RLgAABAgQIECBAgAABAgQIECBAgMAYBCRAx4BlVwIECBAgQIAAAQIECBAgQIAAAQIEyiUgAVqu/hItAQIECBAgQIAAAQIECBRMwL0qC9YhwiFAgMAQAQnQISAWCRAgQIAAAQIECBAgQIAAAQIECBCojoAEaHX6UksIECBAgAABAgQIECBAgAABAgQIEBgiIAE6BMQiAQIECBAgQIAAAQIECBAgQIAAAQLVEZAArU5fagkBAgQIECBAgAABAgQIECBAgAABAkMEJECHgFgkQIAAAQIECBAgQIAAAQIEJl+gp6cnzZs3b/IDEQEBAqUXkAAtfRdqAAECBAgQIECAAAECBAgQIECAAAECIwlIgI4kYz0BAgQIECBAgAABAgQIECBAgAABAqUXkAAtfRdqAAECBAgQIECAAAECBAgQIECAAAECIwlIgI4kYz0BAgQIECBAgAABAgQIECBAgAABAqUXkAAtfRdqAAECBAgQIECAAAECBAgQIECAAAECIwlIgI4kYz0BAgQIECBAgAABAgQIECBAgAABAqUXkAAtfRdqAAECBAgQIECAAAECBAgQIECAAAECIwlIgI4kYz0BAgQIECBAgAABAgQIECBAgAABAqUXkAAtfRdqAAECBAgQIECAAAECBAhMlkB/f/9kHdpxCRAgQKBFAQnQFqHsRoAAAQIECBAgQIAAAQIECBAgQIBA+QQkQMvXZyImQIAAAQIECBAgQIAAAQIECBAgQKBFgekt7lfK3Z5++ul01FFHpQ033DAde+yxI7Zh0aJF6YILLkg33HBDeuSRR9JWW22Vdtppp7T//vunadOmNS1X5DJNA7aSAAECBAgQIECAAAECBAgQIECAQA0FKpsAXbFiRTr++OPTrbfemqZPH7mZjz76aDriiCNSX19f1v0veMEL0hVXXJH9+8UvfpGOO+64NGPGjEGnRpHLDArUAgECBAgQIECAAAECBAgQIECAAIGaC1TyEviFCxemf/u3f0s///nPR+3ez3zmM1nyc7fddkuXXHJJuuiii9J5552XXvjCF6af/vSn6fTTTx9WR5HLDAvWCgIECBAgQIAAAQIECBAgQIAAAQI1FqhcAjQuY3/Xu96VLr300jR16sqbd/vtt6frr78+rbbaaumEE05Ic+bMyU6FTTbZJJ166qnZ5e+XX355euKJJwZOkSKXGQjSDAECBAgQIECAAAECBAgQIECAAAECmcDKM4QlQ/rRj36UPvrRj6YHH3wwxYjOI488cqUtuOaaa7Lte+21V5o5c+agfeNS+F133TUtXrw4RRI0n4pcJo/RKwECBAgQIECAAAECBAh0V6C3t3fgAD09PQPzZrojMG/evO5UrFYCBGohUKkE6MMPP5w23njj9IlPfCKdcsopae21115pJ952223Z9kiWNpsiARrTLbfcMrC5yGUGgjRDgAABAgQIECBAgAABAgQIECBAgEAmMPLTgUoItO+++6Z/+Id/WOlDjxqb9cADD2SLa621VuPqgfl8ff6ApNhQ5DIDgZshQIAAAQIECBAgQIAAga4LNI4C7frBHIAAAQIE2haoVAJ03XXXHRPEU089le2fJzqHFl5zzTWzVfl+sZDPF7HM0Phj+R//8R/TnXfe2WxTeu9735v++Z//uek2K4shsMEGGxQjkApGwba7ncq3e75su2cbNfPtnu9E2K5YsaJ7DVAzAQIECBAgQIBAaQUqlQAdSy8sX748PfPMM1mRNdZYo2nR2bNnZ+sXLVqUvRa5TNMG/HVlJGzzpO3QfeL+pqM9KGpoGcsTK6B/uufNtnu2UTPf7vmy7Z6tc7f8thKg3e1DtRMgQIAAAQIEyipQ2wRo/AEZT39fuHBhyhOcQzsxXz9jxoxsU5HLDI09X477oI40Mjbav2zZsnxXrwUU0D/d6xS23bONmvl2z5dt92ydu+W3jQTo9Om1/Xjb3Q5UOwECBAgQIECgxAK1/oQYicG4v+cTTzzRtAvz9bNmzRrYXuQyA0E2zHzjG99oWBo8G+3r7+8fvNJSoQT0T/e6g233bKNmvt3zZds9W+duNWw32mij7jZE7QQIEGgQaHxeRMNqswQIECBQMIFKPQV+rLb5yMg80Tm0/OOPP56tanyafJHLDI3fMgECBAgQIECAAAECBAgQIECAAIG6C9Q6Abr++utn/X/PPfc0PQ/y9dttt93A9iKXGQjSDAECBAgQIECAAAECBAgQIECAAAECmUCtE6D77rtvhnDllVcOOx3igUdXXXVVtn6nnXYa2F7kMgNBmiFAgAABAgQIECBAgAABAhUT6O3trViLNIcAgYkSqHUCdPfdd0+bb755uuuuu9Lll18+yPzcc89NDz30UNpss83SbrvtNrCtyGUGgjRDgAABAgQIECBAgAABAl0ViPt/9vT0dPUYKidAgACBzgjU+iFIU6ZMSYcddlg69thj00knnZR++ctfpq222irdeuut2fwqq6ySjj766BT75VORy+QxeiVAgAABAgQIECBAgAABAlURmD9/ftaUeD3nnHOq0iztIEBgAgVqPQI0nPfcc8902mmnpQ033DBdffXV6Stf+UqW/IyRoZ/73OfSjjvuOKw7ilxmWLBWECBAgAABAgQIECBAgAABAgQIEKixQKVHgEai8tprrx21e3feeed0/vnnZ5e8x2UM8aCjSIhOnTpyfrjIZUZtsB0IECBAgAABAgQIECBAgAABAgQI1ESg0gnQsfbhOuusk+LfWKYilxlLO+xLgAABAgQIECBAgAABAq0JND6MZ8GCBa0VshcBAgQITJrAyEMcJy0kByZAgAABAgQIECBAgAABAgQIECBAgEBnBCRAO+OoFgIECBAgQIAAAQIECBAgQIAAAQIECijgEvgCdoqQCBAgQIAAAQIEJlcgHo4Z95K///770/Lly9Omm26aXvGKV6TXvva1IwZ25513ZveVv++++9KsWbPSDjvskPbZZ5+05ZZbdrTMiJXZQIAAAQIECBAg0FRAArQpi5UECBAgQIAAAQJ1FFi0aFH62Mc+lm666aas+WuuuWb2+tvf/jb96Ec/Sj/84Q/TySefnFZbbbVBPBdccEH64he/mK2bPXt2Wrx4cfrVr36Vvve976XPfvazaZdddhm0fyy0U2ZYJVYQIECAAAECBAiMKuAS+FGJ7ECAAAECBAgQIFAXgbPOOitLfm6++ebp7LPPTpdeemn276tf/WqaO3duuvnmm9MZZ5wxiOPWW29Np59+epoxY0Y68cQT02WXXZauuOKK9OEPfzgtXLgwHXXUUenBBx8cd5lBFVggQIAAAQIECBBoWUACtGUqOxIgQIAAAQIECFRZ4Omnn85GeE6dOjUdf/zxaZttthlo7rbbbpslN2PFJZdckmLffPrmN7+ZVqxYkQ4++OC05557pilTpqRVVlklHXTQQenAAw9MS5YsSRde+Eq4tAAAQABJREFUeGG+e/baTplBFVggQIAAAQIECBBoWUACtGUqOxIgQIAAAQIECFRZIEZyLlu2LBvpucUWWwxraqxbb731smTnPffck22PROj111+fze+3337DyuTrImm6dOnStssMq9gKAgQIECBAgACBlgXcA7RlKjsSIECAAAECBAhUWWDXXXfNRoA+88wzTZsZCczHHnss27bWWmtlr3fccUeWEI3L4zfeeONh5WLk6BprrJGV+/3vf589EKmdMsMqtoIAAQIECBAgQKBlAQnQlqnsSIAAAQIECBAgUGWBuHR97bXXHrGJCxYsyB5uNGfOnLTJJptk+z3wwAPZa54QbVY4tj3xxBOpr68vS4C2U6ZZvb/85S/T97///WabsqRr3Hu0ztP06dOz2xFEf5lSmjZtWqqzRdzaIqZ4SNny5cvHfUpEPUMfhtas0lVXXbXZ6kHrWtlnUIHnFlopV8V9OnUex3t++OTnRjPjqq+L98l8ivM57mVd1ynaHudCp86vMjrGz0Q+xa18qmbx/Nmet9IrAQIECBAgQIAAAQKDBP7whz+kL33pS9m6ww8/PEusxcJTTz2VrVtZAjR/kny+b/46ljLZQYb897vf/S4bsTpkdbYYl+ofe+yxzTbVbt3qq69euzY3a3D8Yc8ipZkzZzbjGfO6SJy1kixqTDCNdJBW9mlWtpVyVdynk+dx/FxEoseUsmQwh+R98rmTIN47Wnn/KNM54x6gZeotsRIgQIAAAQIECEy4wEMPPZSOPPLI9Oijj6a4TP6Nb3zjQAz5w5DiMveRphgpFlN+aX07ZUaq23oCBAjUUeA3v/lNHZutzQQIjEPACNBx4ClKgAABAgQIECBQbYG4b2dcSv7HP/4xvfjFL86eDt/Y4lmzZmWLixcvblw9aH7RokXZcn4pajtlBlX43EI8YGn77bdvtikb0fSXv/yl6ba6rIyRfjFS7OGHH65Lk5u2c911183Wxz1sI4lf1yluARC3uAiD/IFk47GI94V3v/vdo1axcOHCjuzTrJJO1V22euK9Le7HPN73uDgf4v05/1KqmXHV18Vl7/nvpLhVS/77qurtbta++LIyRjx6n3z2VkBxLsQ5UbQp/53WTlwSoO2oKUOAAAECBAgQIFB5gVtuuSV94hOfyP4AeNnLXpZOOOGEgT8U88bnH8Qff/zxfNWw1/wPiPyPzHbKDKv0ryte8IIXZP+abYt1kbSt85RfnrxkyZLaMjTez23FihWpzhbR/pgi+dkph2XLlo16brVyv9FW9ml2oFbKVXGf6L9O9WP4dOp8aNZHRV+Xv09GnHE+19kizgXvk8++T8b5UMWfDZfAR8+aCBAgQIAAAQIECDQIXHXVVekjH/lIlvyMkZannHLKsORn7J4nM/MkZ0MVA7N5cjR/wFI7ZQYqM0OAAAECBAgQIDBmASNAx0ymAAECBAgQIECAQJUFLr744nTyySdnTZw3b1465JBDRmzu+uuvn22LJ7zHyJmhD9OIyzTjEux40MZWW22V7dtOmREDsIEAAQI1E+jt7a1ZizWXAIFOCBgB2glFdRAgQIAAAQIECFRC4H/+53+y0Z5x6XBc/r6y5Gc0eOONN07bbrttevLJJ9N11103zODqq6/OLiuMffInF7dTZljFVhAgQIAAAQIECLQsIAHaMpUdCRAgQIAAAQIEqiwQN/w/7bTTsnuAHXrooemAAw5oqbnveMc7sv3OOeecQQ8M6O/vT9/5zneybQcddNCgutopM6gCCwQIEKipQIy4NxEgQGCsAi6BH6uY/QkQIECAAAECBCopcMEFF6Q//OEPWdu+/vWvp/g30hQPRNpjjz2yzXvttVfabrvt0h133JEicbr33ntnD+i48sor00MPPZRe9apXpX322WdQVe2UGVSBBQIECBAgQIAAgZYFJEBbprIjAQIECBAgQIBAlQV+/etfDzRvtKc7Nz5Zedq0aemMM87IRo8uWLAgnXvuuVk9sf7AAw9M73vf+7J7gA5U/teZdso0ljdPgAABAgQIECDQuoAEaOtW9iRAgAABAgQIEKiwQP7go3aauOqqq2b3DD3qqKPS3XffnV1GP3fu3KZPjs/rb6dMXtYrAQIE6i4QD0Paeuut686g/QQItCggAdoilN0IECBAgAABAgQIjCYwffr0tM0224y226Dt7ZQZVIEFAgQIECBAgACBlQp4CNJKeWwkQIAAAQIECBAgQIAAAQIECBAgQKDMAhKgZe49sRMgQIAAAQIECBAgQIAAgRoJ9Pf316i1mkqAQKcEJEA7JakeAgQIECBAgAABAgQIECBAoOsCfX19XT+GAxAgUC0BCdBq9afWECBAgAABAgQIECBAgAABAgQIECDQICAB2oBhlgABAgQIECBAgAABAgQIECBAgACBagl4Cny1+lNrCBAgQIAAAQIECBAgQKBLAr29vV2qWbUECBAg0E0BI0C7qatuAgQIECBAgAABAgQIECBAoGMCCxYsSD09PR2rT0UECNRDQAK0Hv2slQQIECBAgAABAgQIECBAgAABAgRqKSABWstu12gCBAgQIECAAAECBAgQaEdg/vz57RRThgABAgQmUUACdBLxHZoAAQIECBAgQIAAAQIEyiEwb968cgQqSgIECBAYJiABOozECgIECBAgQIAAAQIECBAgQIAAAQIEqiIgAVqVntQOAgQIECBAgAABAgQIECBQEwG3IqhJR2smgQ4JSIB2CFI1BAgQIECAAAECBAgQIFBtgb6+voEG9vf3D8ybIUCAAIFiC0iAFrt/REeAAAECBAgQIECAAAECBAgQIECAwDgEJEDHgacoAQIECBAgQIAAAQIECBAgQIAAAQLFFpAALXb/iI4AAQIECBAgQIAAAQIECBAgQIAAgXEISICOA09RAgQIECBAgAABAgQIECBAgAABAgSKLSABWuz+ER0BAgQIECBAgAABAgQIECBAgAABAuMQkAAdB56iBAgQIECAAAECBAgQIECAAAECBAgUW0ACtNj9IzoCBAgQIECAAAECBAgQIEBgBIHe3t4RtlhNgACB5wUkQJ+3MEeAAAECBAgQIECAAAECBAgQIECAQMUEJEAr1qGaQ4AAAQIECBAgQIAAAQIECBAgQIDA8wISoM9bmCNAgAABAgQIECBAgAABAgQIECBAoGICEqAV61DNIUCAAAECBAgQIECAAIHuCPT09HSnYrW2JRD3/+zr62urrEIECNRLQAK0Xv2ttQQIECBAgAABAgQIECBAgAABAgRqJSABWqvu1lgCBAgQIECAAAECBAgQIECAAAEC9RKQAK1Xf2stAQIECBAgQIAAAQIECIxRIC61NhVPwOXvxesTEREoqoAEaFF7RlwECBAgQIAAAQIECBAgQIAAAQIECIxbQAJ03IQqIECAAAECBAgQIECAAAECBCZaoL+/f6IP6XgECJRUQAK0pB0nbAIECBAgQIAAAQIECBAgQIAAAQIERheQAB3dyB4ECBAgQIAAAQIECBAgQIBAQQXco7WgHSMsAgUSkAAtUGcIhQABAgQIECBAgAABAgQIEGhNYMGCBa3taC8CBGovIAFa+1MAAAECBAgQIECAAAECBAgQKKdAT09POQMXNQECEyogATqh3A5GgAABAgQIECBAgAABAgQIECBAgMBECkiATqS2YxEgQIAAAQIECBAgQIAAAQIdFejr6+tofSojQKB6AhKg1etTLSJAgAABAgQIECBAgAABAgQIECBA4DkBCVCnAgECBAgQIECAAAECBAgQIECAAAEClRWQAK1s12oYAQIECBAgQIAAAQIECBAgQIAAAQISoM4BAgQIECBAgAABAgQIECBAgAABAgQqKyABWtmu1TACBAgQIECAAAECBAgQIFAPgR//+Mf1aKhWEiDQloAEaFtsChEgQIAAAQIECBAgQIAAAQIECBAgUAYBCdAy9JIYCRAgQIAAAQIECBAgQGDCBebNm5cds6+vb8KP7YAECBAg0DkBCdDOWaqJAAECBAgQIECAAAECBAgQmGCBnp6eCT6iwxEgUDYBCdCy9Zh4CRAgQIAAAQIECBAgQIAAAQIECBBoWUACtGUqOxIgQIAAAQIECBAgQIBAHQWMMKxjr2szAQJVEpAArVJvagsBAgQIECBAgAABAgQIECBAgAABAoMEJEAHcVggQIAAAQIECBAgQIAAAQIECBAgQKBKAhKgVepNbSFAgAABAgQIECBAgAABAgQIECBAYJCABOggDgsECBAgQIAAAQIECBAgQIAAAQIECFRJQAK0Sr2pLQQIECBAgAABAgQIECBAgAABAgQIDBKQAB3EYYEAAQIECBAgQIAAAQIECBAgQIAAgSoJSIBWqTe1hQABAgQIECBAgAABAgQI1FSgt7e3pi3XbAIERhOQAB1NyHYCBAgQIECAAAECBAgQIECAAAECBEorIAFa2q4TOAECBAgQIECAAAECBAgQIJALzJ8/P5/1SoAAgUECEqCDOCwQIECAAAECBAgQIECAAAECBAgQIFAlAQnQKvWmthAgQIAAAQIECBAgQIAAAQIECBAgMEhAAnQQhwUCBAgQIECAAAECBAgQIPC8gAfrPG9R5Ln+/v4ihyc2AgQmWUACdJI7wOEJECBAgAABAgQIECBAoLgCfX19xQ1OZE0FJK2bslhJoNYCEqC17n6NJ0CAAAECBAgQIECAAAECBAgQIFBtAQnQavev1hEgQIAAAQIECBAgQIAAAQIECBCotYAEaK27X+MJECBAgAABAgQIECBAgAABAgQIVFtAArTa/at1BAgQIECAAAECBAgQIECAAAECBGotIAFa6+7XeAIECBAgQIAAAQIECBBoJuBBOs1UyrFu/vz55QhUlAQITJiABOiEUTsQAQIECBAgQIAAAQIECBRdQOKz6D0kPgIECIxdQAJ07GZKECBAgAABAgQIECBAgEDFBYwirHgHax4BArUSkACtVXdrLAECBAgQIECAAAECBAiMJmAU6GhCthMgQKBcAhKg5eov0RIgQIAAAQIECBAgQIDABAr09PRM4NEcigABAgS6ISAB2g1VdRIgQIAAAQIECBAgQIAAAQIECBAgUAgBCdBCdIMgCBAgQIAAAQIECBAgQKAIAn19fUUIQwwECBAg0EEBCdAOYqqKAAECBAgQIECAAAECBAgQIECAAIFiCUiAFqs/REOAAAECBAgQIECAAAECBAi0KeABVm3CKUag4gISoBXvYM0jQIAAAQIECBAgQIAAAQJ1E5AIrVuPay+BlQtIgK7cx1YCBAgQIECAAAECBAgQIECAAAECBEosIAFa4s4TOgECBAgQIECAAAECBAgQIECAAAECKxeQAF25j60ECBAgQIAAAQIECBAgQIBACQVcBl/CThMygS4JSIB2CVa1BAgQIECAAAECBAgQIECAwMQK9PX1TewBHY0AgVIISICWopsESYAAAQIECBAgQIAAAQIECBAgQIBAOwISoO2oKUOAAAECBAgQIECAAAEClRTo6elJRhGWt2uj/0wECBAYKiABOlTEMgECBAgQIECAAAECBAgQIFBqAUnsUnef4Al0XEACtOOkKiRAgAABAgQIECBAgACBsgl4YE7Zeky8BAgQaF1AArR1K3sSIECAAAECBAgQIECAAAECBAgQIFAygekli1e4HRSYNm1a2mijjTpYo6o6LaB/Oi36fH1sn7foxhzfbqg+Wyfb7tlGzXy75zsRtitWrOheA9RMgECtBPr7+2vVXo0lQIBA1QUkQKvewytp3/Lly9Njjz22kj1smmwB/dO9HmDbPduomW/3fNl2z9a5W37bSICutdZa3W2I2gkQIECgFALxMKRjjjmmFLEKkgCB7gtIgHbfuLBHiD8Snn766cLGJ7Ckf7p4Ejj3u4j716r5ds+Xbfdso2a+3fOdKFsJ0O71oZoJECBAgAABAmUVcA/QsvacuAkQIECAAAECBAgQIECAAAECBAgQGFVAAnRUIjsQIECAAAECBAgQIECAAAECBAgQIFBWAQnQsvacuAkQIECAAAECBAgQIECAAAECBAgQGFVAAnRUIjsQIECAAAECBAgQIECAAAECBAgQIFBWAQnQsvacuAkQIECAAAECBAgQIECAAAECBAgQGFVAAnRUIjsQIECAAAECBAgQIECAAAECBAgQIFBWAQnQsvacuAkQIECAAAECBAgQIECAAAECBAgQGFVg+qh72IEAAQIECBAgQIAAgdIJrLfeeqWLuZMBT5kyJcW/ujvkptOnT2fxV4y11lorJxn22t/fP2C02mqrDds+dMVE7jP02LE8kccv2rFa9Yj+Huk9YOrUqWn11VdPM2fObFZdLdbFe2Q+rbHGGmn27Nn5Yu1e43zwO+P5bl911VVH/Nl5fq9yzUmAlqu/REuAAAECBAgQIECgJYFFixa1tF9Vd1pllVVS/EFbd4dIfMa0fPnyWlvEuRAWS5YsySyanfexLT9fli1b1myXQesmcp9BB35uYSKPX7RjterR2KdDy0RSd+nSpdk5MXRbXZbjfXLatGlZc8Mi/tV1mjFjRu1/Z0QCuOi/M/L42jlPJUDbUVOGAAECBAgQIECAQMEFHn/88YJH2N3wZs2alf0hV2eH+GM2HGKKBGidLeKP5kh4PfXUUyMmvGJbbrR48eJRT9CJ3KdZMBN5/KIdq1WP6NMbbrgh233rrbceVCxGfka7nnjiiUHr67QQ7w+R+Itp4cKF2b86tb+xrXPmzEmREM7fAxq31WU+3idjVHRM8eVBES3y32nt9Il7gLajpgwBAgQIECBAgAABAgQIECBAgAABAqUQkAAtRTcJkgABAgQIECBAgAABAgQIECBAgACBdgQkQNtRU4YAAQIECBAgQIAAAQIECBAotEBfX1+h4xMcAQITJyABOnHWjkSAAAECBAgQIECAAAECBRbo7e0tcHRCI0CAAIF2BSRA25VTjgABAgQIECBAgAABAgQqIzB//vxkxGBlulNDCBAgMEhAAnQQhwUCBAgQIECAAAECBAgQIECgKgKS2lXpSe0gMD4BCdDx+SlNgAABAgQIECBAgAABAgQIECBAgECBBSRAC9w5QiNAgAABAgQIECBAgACB7gm452f3bNVMgACBIglIgBapN8RCgAABAgQIECBAgAABAgQIdFTAZfAd5VQZgVIKSICWstsETYAAAQIECBAgQIAAAQLjEZg3b96w4j09PcPWWVFugf7+/oEGGPE7QGGGQO0EpteuxRpMgAABAgQIECBAgAABAgQI1EYgEttz586tTXs1lACB4QJGgA43sYYAAQIECBAgQIAAAQIEaiTQbDRojZqvqQQIEKi8gARo5btYAwkQIECAAAECBAgQIECAAAECBAjUV0ACtL59r+UECBAgQIAAAQIECBAgQKAWAvPnz69FOzWSAIHmAhKgzV2sJUCAAAECBAgQIECAAIGKC0iKVbyDNY8AAQLPCUiAOhUIECBAgAABAgQIECBAoLYC7v9Z3a6Phx+ZCBAgEAISoM4DAgQIECBAgAABAgQIECBAoJICCxYsqGS7NIoAgbEJSICOzcveBAgQIECAAAECBAgQIECAQAkF+vr6sqiN+i1h5wmZwDgFJEDHCag4AQIECBAgQIAAAQIECBAgUA6B3t7ecgQqSgIEOiogAdpRTpURIECAAAECBAgQIECAAAECBAgQIFAkAQnQIvWGWAgQIECAAAECBAgQIECAAAECBAgQ6KiABGhHOVVGgAABAgQIECBAgAABAgQIECBAgECRBCRAi9QbYiFAgAABAgQIECBAgAABAgS6JpA/CKlrB1AxAQKFFJAALWS3CIoAAQIECBAgQIAAAQIECBAgQIAAgU4ISIB2QlEdBAgQIECAAAECBAgQIFAaAU8CL01XdTzQ/v7+jtepQgIEii8gAVr8PhIhAQIECBAgQIAAAQIECBAgQIAAAQJtCkiAtgmnGAECBAgQIECAAAECBAgQIECAAAECxReQAC1+H4mQAAECBAgQIECAAAECBAgQIECAAIE2BSRA24RTjAABAgQIECBAgAABAgQIECinwG233VbOwEVNgEBbAhKgbbEpRIAAAQIECBAgQIAAAQIECJRdwAOxyt6D4ifQmoAEaGtO9iJAgAABAgQIECBAgAABAgQIECBAoIQCEqAl7DQhEyBAgAABAgQIECBAgMDYBH7zm98MFJg/f/7AvJn6CPT399ensVpKgMAgAQnQQRwWCBAgQIAAAQIECBAgQIAAAQIECBCokoAEaJV6U1sIECBAgAABAgQIECBAoKnAUUcdla13z8emPLVZuWDBgtq0VUMJEHheQAL0eQtzBAgQIECAAAECBAgQIFBBgd/+9rcVbJUmjVfgwAMPHG8VyhMgUBIBCdCSdJQwCRAgQIAAAQIECBAgQGB8AgcffPD4KlCaAAECBEopIAFaym4TNAECBAgQIECAAAECBAgQIDBegb6+vvFWoTwBAiUQkAAtQScJkQABAgQIECBAgAABAgQ6IyDh1RnHqtTS09OTNcW9YavSo9pBoLmABGhzF2sJECBAgAABAgQIECBAoIIC/f39FWyVJhEgQIDAygQkQFemYxsBAgQIECBAgAABAgQIECBAgAABAqUWkAAtdfcJngABAgQIECBAgAABAgQIECBAgACBlQlIgK5MxzYCBAgQIECAAAECBAgQIECAAAECBEotML3U0QueAAECBAgQIECAAAECBAisRCAebjN//vyV7GFTHQWOPvroOjZbmwnUVsAI0Np2vYYTIECAAAECBAgQIECAAAECBAgQqL6ABGj1+1gLCRAgQIAAAQIECBAgQIAAAQIECNRWQAK0tl2v4QQIECBAgAABAgQIEKi+gMvfq9/HWkiAAIHRBCRARxOynQABAgQIECBAgAABAgQIEKi0gER5pbtX4wgkCVAnAQECBAgQIECAAAECBAgQIECAAAEClRWQAK1s12oYAQIECBAgQIAAAQIE6ikwb968ejZcqwkQIECgqYAEaFMWKwkQIECAAAECBAgQIECAAAECBAgQqIKABGgVelEbCBAgQIAAAQIECBAgQIAAgbYEent72yqnEAEC5RGQAC1PX4mUAAECBAgQIECAAAECBMYgILE1Biy7EiBAoMICEqAV7lxNI0CAAAECBAgQIECAAAECBAgQIFB3AQnQup8B2k+AAAECBAgQIECAAAECBAgQIECgwgISoBXuXE0jQIAAAQIECBAgQIBAXQVc/l7Xnm+/3fPmzWu/sJIECBRaQAK00N0jOAIECBAgQIAAAQIECBAgQKCbAvPnz+9m9eomQKAAAhKgBegEIRAgQIAAAQIECBAgQIAAAQIECBAg0B0BCdDuuKqVAAECBAgQIECAAAECBAgQKJmAWyeUrMOES6BFAQnQFqHsRoAAAQIECBAgQIAAAQLFF2hMYPX19RU/YBESIECAQNcFJEC7TuwABAgQIECAAAECBAgQIDDRAu7rONHijkeAAIHiCkiAFrdvREaAAAECBAgQIECAAAECBAhMsEDjKOI49NDlCQ7H4QgQ6ICABGgHEFVBgAABAgQIECBAgAABAgQIECBAgEAxBSRAi9kvoiJAgAABAgQIECBAgACBMQg0G6XX09MzhhrsSoAAAQJVFZAArWrPahcBAgQIECBAgAABAgQIECDQlkCzhHpbFSlEgEAhBCRAC9ENgiBAgAABAgQIECBAgACB8QpE0sqT38erWO/yN9544wCAJOgAhRkCpReYXvoWaAABAgQIECBAgAABAgQIECBAoEMCkUSfO3euZHqHPFVDoAgCRoAWoRfEQIAAAQIECBAgQIAAAQLjEpg/f/64yitMoFGg2UhiI0IbhcwTKJeABGi5+ku0BAgQIECAAAECBAgQINAgICnVgGG2owL9/f0drU9lBAhMnoAE6OTZOzIBAgQIECBAgAABAgQIdEBAErQDiKogQIBA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vsA73vGOLMhzzjln0AMX+vv7UzzdPaaDDjooe/UfAQIECBAgQIDA+AQ8BGl8fl0rHTcsP+yww9Kxxx6bTjrppPTLX/4yuwTq1ltvzebjyX1HH310aryxedeCUTEBAgQIECBAgEBHBfbaa68UtzK644470qGHHpr23nvv7GEccfVPfNEdT3jfZ599OnpMlREgQIAAAQIE6iogAVrgnt9zzz3TaaedliVA41Ko+BdTjAz96Ec/mnbccccCRy80AgQIECBAgACBkQTiybtnnHFG9llvwYIFKa7wiSnWH3jggel973tfdg/QkcpbT4AAAQIECBAg0LqABGjrVpOy584775zOP//8bCRA3Cg/bpq/4YYb+kA8Kb3hoAQIECBAgACBzgmsuuqq6ROf+EQ66qij0t13351WrFiR5s6dm2bNmtW5g6iJAAECBAgQIEAgSYCW5CRYZ511UvwzESBAgAABAgQIVEtg+vTpaZtttqlWo7SGAAECBAgQIFAgAQ9BKlBnCIUAAQIECBAgQIAAAQIECBAgQIAAgc4KSIB21lNtBAgQIECAAAECBAgQIECAAAECBAgUSEACtECdIRQCBAgQIECAAAECBAgQIECAAAECBDorIAHaWU+1ESBAgAABAgQIECBAgAABAgQIECBQIAEJ0AJ1hlAIECBAgAABAgQIECBAgAABAgQIEOisgARoZz3VRoAAAQIECBAgQIAAAQIECBAgQIBAgQQkQAvUGUIhQIAAAQIECBAgQIAAAQIECBAgQKCzAhKgnfVUGwECBAgQIECAAAECBAgQIECAAAECBRKQAC1QZwiFAAECBAgQIECAAAECBAgQIECAAIHOCkiAdtZTbQQIECBAgAABAgQIECBAgAABAgQIFEhAArRAnSEUAgQIECBAgAABAgQIECBAgAABAgQ6KyAB2llPtREgQIAAAQIECBAgQIAAAQIECBAgUCABCdACdYZQCBAgQIAAAQIECBAgQIAAAQIECBDorIAEaGc91UaAAAECBAgQIECAAAECBAgQIECAQIEEJEAL1BlCIUCAAAECBAgQIECAAAECBAgQIECgswISoJ31VBsBAgQIECBAgAABAgQIECBAgAABAgUSkAAtUGcIhQABAgQIECBAgAABAgQIECBAgACBzgpIgHbWU20ECBAgQIAAAQIECBAgQIAAAQIECBRIQAK0QJ0hFAIECBAgQIAAAQIECBAgQIAAAQIEOisgAdpZT7URIECAAAECBAgQIECAAAECBAgQIFAgAQnQAnWGUAgQIECAAAECBAgQIECAAAECBAgQ6KyABGhnPdVGgAABAgQIECBAgAABAgQIECBAgECBBCRAC9QZQiFAgAABAgQIECBAgAABAgQIECBAoLMCEqCd9VQbAQIECBAgQIAAAQIECBAgQIAAAQIFEpAALVBnCIUAAQIECBAgQIAAAQIECBAgQIAAgc4KSIB21lNtBAgQIECAAAECBAgQIECAAAECBAgUSGDKir9OBYpHKAQIVEDg8ssvTx/72MeylhxxxBEp/pkIlEHg61//ejr11FOzUE844YT05je/uQxhi5FAivP1vPPOyyTOPvvstPvuu1MhQIBAWrhwYXr5y1+eSWy33Xbp/PPPp1Jzgfe85z3phhtuyBR+8pOfpHXWWafmIvVu/te+9rV02mmnZQg++9b7XIjW33XXXektb3lLBvG6171u4O+iqshMr0pDtIMAgeIILF++PC1ZsiQLaNmyZcUJTCQERhGI89W5OwqSzYUUaDx34z3YRIAAgRCIsS7577WlS5dCIZCdD/k5YSyUE6Lx84O/25wPVf873iXwznECBAgQIECAAAECBAgQIECAAAECBCorIAFa2a7VMAIECBAgQIAAAQIECBAgQIAAAQIEJECdAwQIECBAgAABAgQIECBAgAABAgQIVFZAArSyXathBAgQIECAAAECBAgQIECAAAECBAhIgDoHCBAgQIAAAQIECBAgQIAAAQIECBCorMCUvz75bUVlW6dhBAhMisCDDz6Ybr755uzYL3rRi1L8MxEog8C9996bfvvb32ah7rDDDmmTTTYpQ9hiJJBuv/329Pvf/z6TePnLX57WWWcdKgQIEEjxVOcf/ehHmcSaa66ZXvnKV1KpucD111+fHn744Uxhn332STNmzKi5SL2bf88996Te3t4MwWffep8L0fonn3wy/exnP8sgNtxww7TTTjtVCkUCtFLdqTEECBAgQIAAAQIECBAgQIAAAQIECDQKuAS+UcM8AQIECBAgQIAAAQIECBAgQIAAAQKVEpAArVR3agwBAgQIECBAgAABAgQIECBAgAABAo0CEqCNGuYJECBAgAABAgQIECBAgAABAgQIEKiUgARopbpTYwgQIECAAAECBAgQIECAAAECBAgQaBSY3rhgngABAp0UWLFiRTr++ONTX19fOvHEE9MGG2zQyerVRaCjAj//+c/Tddddlz0FfsqUKWnLLbdMb3/729Omm27a0eOojEAnBZ566ql03nnnpTvuuCP19/enjTbaKO24447pwAMPTKuuumonD6UuAgS6LPDQQw+l733ve+nuu+9Of/rTn9L666+ftthii/S2t70trbfeek2PvmjRonTBBRekG264IT3yyCNpq622yp7au//++6dp06ZNapmmB7dyTAJXX311uvbaa9P999+fli9fnn0mecUrXpFe+9rXNq0n9r/llluabouV6667bnrnO985bPudd96Zzj///HTfffelWbNmpXgaeDwhPj4LjTS1U2akuqxvTeDKK69M11xzTXY+xO/76Ke99947+90/Ug3t9FM7Zdp5LxopZutbE/jLX/6Svv3tb6e77rorLVy4ML3kJS9JO++8c3rNa17TtIKnn346ffWrX226LV95wAEHpBe96EX5YvbaTt+2U2bQQbu04CnwXYJVLQECKfuj/Kyzzsoo4s157ty5WAgUTmDJkiXpjDPOSD/4wQ+y2ObMmZOeeeaZFL+444/H//f//l/627/928LFLSAC9957b/roRz+aImkS05prrpkef/zxbH6TTTZJX/ziF33xlGn4j0DxBSKpcdJJJ2V/xMbvnnXWWSf72V62bFlabbXV0sc//vG07777DmrIo48+mo444ojsi+bY8IIXvCA9/PDD2T577rlnOu6449KMGTMmpcygg1oYs0B8BvnYxz6WbrrppqxsvL/HlL/H77TTTunkk0/Ozo1sw3P/feQjH0k33nhj46pB85HQ/OY3vzloXSTQ4/dFTLNnz06LFy/O/sV599nPfjbtsssug/aPhXbKDKvEipYFli5dmj7xiU9kX9RHoTXWWCM9+eSTKQabxOfWOBde/OIXD6uvnX5qp0w770XDgrViTAIxaCP+Rom/WWKKc+KJJ57I5l//+teno48+etiXYPHlyAc+8IFsn5H+O+GEE9Jee+01sLmdvm2nzMABuzwjAdplYNUTqKvA//3f/6XDDjssxS/smCRA63omFL/dX/7yl1NPT082uib+WIxv0+MDZaw7++yz08yZM7N5I5iL35d1ijDeWw899NBspNhuu+2WzW+77bbZyJ84p+ND7t/8zd+kM888s04s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G264wTRq1MhUrVo1ah5WIIAAAggggAACfhYgAOrn2qfsCCCAAAIIIIBAmgisWbPGPPDAA7Y08+bNMz169IhastGjR5tp06aZzMxMc+jQoZDt9u/fb/r06WM+//zzkOXuRYkSJczzzz9vnnrqKVOsWGxfpceNG2dmzZplSpcubU6ePOl2leOxS5cuRsHSjh07miVLluRYf/78eTN58mTz7LPPmrNnz+ZYf//995upU6faAGqOlSxAAAEEEEAAAQR8LBDbtzYfA1F0BBBAAAEEEEAAgcIv0LVrV9uSUy0i58yZEzUA+tdff5kFCxbYAnXu3NmUL18+ULjPPvvMdOvWzZw4ccIUKVLEtGzZ0tSoUcP8+++/Zs+ePWbTpk22hebIkSPtNi+99FIgb6KfnD592tx1111mxYoV9lBXXnmladasmS3z5s2bzc6dO40CvwoEL1u2zKhlKwkBBBBAAAEEEEDgggBjgHIlIIAAAggggAACCKS8QMmSJU337t1tORQAVJfzSOmTTz4xR48etat69+4dsolaVir4qaDo1q1bzerVq827775rA6obN240a9euNWXKlLF51IL01KlTIfkT+eKVV14JBD8HDhxou/B/9NFHZvbs2WbHjh1m/vz5toWpWrAOHjw4kafCvhFAAAEEEEAAgZQTIACaclXGCSOAAAIIIIAAAghEEnABzX/++SfQyjN8u/fee88uqly5smnfvn1g9bp162wLTy2YMGGCuf766wPr3JMWLVqYxx57zL48duyYbRXq1iXy8eeffzaTJk2yh+jQoYN54403bLAz+JgK/k6fPt0uUktWBUdJCCCAAAIIIIAAAhcECIByJSCAAAIIIIAAAgikhYC6hGuSIiV1gw9PClp+/PHHdrHGC9WkRC5p0qHly5ebGTNmRO0+r22Du5bnNp6n229+PKoVqmttqvFEo6WePXsadY1XUh4SAggggAACCCCAwAUBxgDlSkAAAQQQQAABBBBIGwG1An366afNhg0bzPfff29q1aoVKJvG/tQYoEqutahbqW7vbdu2tX9umXvUGKA//fSTUStRdTV3SS1Nk5G+++47exhNwFStWjWjQG601LBhQ3P48GHj8kTbjuUIIIAAAggggICfBAiA+qm2KSsCCCCAAAIIIJDmAr169TKapEjByblz59oZ212RXfd3tRStV6+eW5zjceXKleaLL76wY2vu2rXLBlJd4DTHxklYoAmYlM6cOWMqVaoU0xH37t1rNGt8RkZGTNuzEQIIIIAAAgggkM4CdIFP59qlbAgggAACCCCAgM8E1AW8Y8eOttQKgLqkgOBXX31lX4a3/nTbbN++3TRu3NjccccdRl3NP/jgAzu7uoKfpUuXNhp/00205PIk4/HAgQNxH0azxv/2229x5yMDAggggAACCCCQjgIEQNOxVikTAggggAACCCDgYwEX4FQ3cHWFV3JjggbPFh9MpC7umhRpy5YtdnHLli3NmDFjzKJFi+xkR8ePHzeaQT544qTg/LE8P3fuXK6bKWgZKVWpUsUuVqtVnUesfxUqVIi0O5YhgAACCCCAAAK+E6ALvO+qnAIjgAACCCCAAALpLdCpUyfbVfzXX381CxcuNOryPm/ePFvoe+65x5QtWzYHwJQpU8wvv/xil7/22mtm2LBhObbRgqNHjwaWa2zQWFKRIhfaHPz9999RN1d39Whje9auXdusX7/ejut5ySWXGI0FSkIAAQQQQAABBBCIXYAWoLFbsSUCCCCAAAIIIIBACggoSKhZ3pU+/PBDo67tbhxN1zo0vBga81NJkyENHTrUPo/0jwKRLsU6CZJanSpp++zsbJc95HHbtm3m7NmzIcvci+uuu84+VX61Qo2W1MK0TZs2plWrVmbIkCHRNmM5AggggAACCCDgOwECoL6rcgqMAAIIIIAAAgikv4ALdP7www/mueeeswWuWrWqHd8zUundJEcnTpyws6hH2kbd6NWi1KXcWnS6bfSomdtdmjZtmnsaeFTX94EDBwZehz/p27evKVOmjF2slql//vln+Cb29dtvv20nb1q9erXJzMyMuA0LEUAAAQQQQAABPwoQAPVjrVNmBBBAAAEEEEAgzQUaNmxomjZtaku5ePFi+/jggw8a1x09vPjqJq+kQOioUaNMVlZWYBNNJqTA5cMPP2xnVncronVZd+vdoyZOKlq0qH05duxYOx6p8qrF54oVK0yXLl1sF/fixYu7LCGPmthJ+ZT27dtnbrnlFrNx48bANgryvvzyy+bRRx+1y8qVK2cGDx4cWM8TBBBAAAEEEEDA7wIEQP1+BVB+BBBAAAEEEEAgTQVcK1AVLyMjwwYwoxV1/Pjx5oorrrCrZ82aZa6++mobaFQgtVKlSja4qEmF3nrrLVOs2IVh9L/99ttouwtZfs0115j+/fvbZWfOnDG9evWy+7z88stN27ZtzbJly+x6LY+WBg0aZPr162dX79y5045rqvOtU6eOqVmzphkxYoRRi9RSpUqZJUuWGLV2JSGAAAIIIIAAAghcECAAypWAAAIIIIAAAgggkJYCPXr0CEwYdNttt9lAYbSCaqb1VatWmXbt2tlNNCnRpk2bzI4dO8xll11mBgwYYHbv3m3UHb158+Z2m/fffz+kRWi0fWv51KlTbSvSihUr2s00nqe6vuu448aNM9OnTw+0Eo20HwVdZ86caZYuXWoaNGhgW7KqFalmuldSC1ONe6pZ7Fu0aBFpFyxDAAEEEEAAAQR8K5Dx35e7874tPQVHAAEEEEAAAQQQQCBMQLPB79271xw/ftwGG9WaUi1I8yupG7tacdarV89Ur17d025PnTpldu3aZQ4dOmRbe1577bU2UOtpZ2RCAAEEEEAAAQTSXIAAaJpXMMVDAAEEEEAAAQQQQAABBBBAAAEEEEDAzwJ0gfdz7VN2BBBAAAEEEEAAAQQQQAABBBBAAAEE0lyAAGiaVzDFQwABBBBAAAEEEEAAAQQQQAABBBBAwM8CBED9XPuUHQEEEEAAAQQQQAABBBBAAAEEEEAAgTQXIACa5hVM8RBAAAEEEEAAAQQQQAABBBBAAAEEEPCzAAFQP9c+ZUcAAQQQQAABBBBAAAEEEEAAAQQQQCDNBQiApnkFUzwEEEAAAQQQQAABBBBAAAEEEEAAAQT8LEAA1M+1T9kRQAABBBBAAAEEEEAAAQQQQAABBBBIcwECoGlewRQPAQQQQAABBBBAAAEEEEAAAQQQQAABPwsQAPVz7VN2BBBAAAEEEEAAAQQQQAABBBBAAAEE0lyAAGiaVzDFQwABBBBAAAEEEEAAAQQQQAABBBBAwM8CBED9XPuUHQEEEEAAAQQQQAABBBBAAAEEEEAAgTQXIACa5hVM8RBAAAEEEEAAAQQQQAABBBBAAAEEEPCzAAFQP9c+ZUcAAQQQQAABBBBAAAEEEEAAAQQQQCDNBQiApnkFUzwEEEAAAQQQQAABBBBAAAEEEEAAAQT8LEAA1M+1T9kRQAABBBBAAAEEEEAAAQQQQAABBBBIcwECoGlewRQPAQQQQAABBBBAAAEEEEAAAQQQQAABPwsQAPVz7VN2BBBAAAEEEEAAAQQQQAABBBBAAAEE0lyAAGiaVzDFQwABBBBAAAEEEEAAAQQQQAABBBBAwM8C/wM8EVleqDhlEwAAAABJRU5ErkJggg==" width="672" /></p>
+<p>The bar plots indicate no anomalous values in these variables.</p>
 </div>
 <div id="task-2.5" class="section level2">
 <h2>Task 2.5</h2>
+<pre class="r"><code>#Make sure the type of all categorical variables are either character or factor.
+data_edu %&gt;% 
+  select(c(paste(all_CatVar))) %&gt;% 
+  map(., typeof)</code></pre>
+<pre><code>## $sex
+## [1] &quot;character&quot;
+## 
+## $ethnic_cd
+## [1] &quot;character&quot;
+## 
+## $tst_bnch
+## [1] &quot;character&quot;
+## 
+## $migrant_ed_fg
+## [1] &quot;character&quot;
+## 
+## $ind_ed_fg
+## [1] &quot;character&quot;
+## 
+## $sp_ed_fg
+## [1] &quot;character&quot;
+## 
+## $tag_ed_fg
+## [1] &quot;character&quot;
+## 
+## $econ_dsvntg
+## [1] &quot;character&quot;
+## 
+## $stay_in_dist
+## [1] &quot;character&quot;
+## 
+## $stay_in_schl
+## [1] &quot;character&quot;
+## 
+## $dist_sped
+## [1] &quot;character&quot;
+## 
+## $trgt_assist_fg
+## [1] &quot;character&quot;
+## 
+## $ayp_dist_partic
+## [1] &quot;character&quot;
+## 
+## $ayp_schl_partic
+## [1] &quot;character&quot;
+## 
+## $ayp_dist_prfrm
+## [1] &quot;character&quot;
+## 
+## $ayp_schl_prfrm
+## [1] &quot;character&quot;
+## 
+## $rc_dist_partic
+## [1] &quot;character&quot;
+## 
+## $rc_schl_partic
+## [1] &quot;character&quot;
+## 
+## $rc_dist_prfrm
+## [1] &quot;character&quot;
+## 
+## $rc_schl_prfrm
+## [1] &quot;character&quot;
+## 
+## $grp_rpt_dist_partic
+## [1] &quot;character&quot;
+## 
+## $grp_rpt_schl_partic
+## [1] &quot;character&quot;
+## 
+## $grp_rpt_dist_prfrm
+## [1] &quot;character&quot;
+## 
+## $grp_rpt_schl_prfrm
+## [1] &quot;character&quot;</code></pre>
+<pre class="r"><code># List of variable types
+  
+  outcome &lt;- c(&#39;score&#39;) 
+  
+  id      &lt;- c(&#39;id&#39;) #id
+  
+  categorical &lt;- c(&#39;sex&#39;, &#39;ethnic_cd&#39;, &#39;tst_bnch&#39;, &#39;migrant_ed_fg&#39;,  &#39;ind_ed_fg&#39;, &#39;sp_ed_fg&#39;, &#39;tag_ed_fg&#39;, &#39;econ_dsvntg&#39;, &#39;stay_in_dist&#39;, &#39;stay_in_schl&#39;, &#39;dist_sped&#39;, &#39;trgt_assist_fg&#39;, &#39;ayp_dist_partic&#39;, &#39;ayp_schl_partic&#39;, &#39;ayp_dist_prfrm&#39;, &#39;ayp_schl_prfrm&#39;, &#39;rc_dist_partic&#39;, &#39;rc_schl_partic&#39;, &#39;rc_dist_prfrm&#39;, &#39;rc_schl_prfrm&#39;, &#39;grp_rpt_dist_partic&#39;, &#39;grp_rpt_schl_partic&#39;, &#39;grp_rpt_dist_prfrm&#39;, &#39;grp_rpt_schl_prfrm&#39;) 
+  
+  cyclic &lt;- c(&#39;date&#39;, &#39;month&#39;)
+  
+  numeric   &lt;- c(&#39;enrl_grd&#39;)
+
+  
+blueprint &lt;- recipe(
+  x = data_edu ,
+  vars = c(outcome, categorical, cyclic, numeric, id),
+  roles =  c(&#39;outcome&#39;, rep(&#39;predictor&#39;, 27), &#39;ID&#39;)) %&gt;% 
+  
+    ### for all 27 predictors, create an indicator variable for missingness
+  step_indicate_na(all_of(categorical),all_of(numeric)) %&gt;%
+  
+  
+  ### Remove the numeric variable with zero variance
+  step_zv(all_of(numeric)) %&gt;%
+  
+  
+  ### Impute the missing values using mean numeric predictors, mode for categorical predictors
+  
+  step_impute_mean(all_of(numeric)) %&gt;%
+  step_impute_mode(all_of(categorical)) %&gt;%
+  
+  
+ ### recode cyclic predictors - date and month - into two new variables of sin and cos terms,
+   step_harmonic(date, cycle_size = 1, frequency = 1/31) %&gt;% 
+   step_harmonic(month, cycle_size = 1, frequency = 1/12)%&gt;%
+
+###expand numeric predictors using using natural splines with three degrees of freedom and standardize,
+  
+# Natural splines for numeric variables 
+  
+  step_ns(all_of(numeric), deg_free=3) %&gt;%
+  
+  # Standardize the natural splines of numeric variables 
+  
+  step_normalize(paste0(numeric,&#39;_ns_1&#39;),
+                 paste0(numeric,&#39;_ns_2&#39;),
+                 paste0(numeric,&#39;_ns_3&#39;)) %&gt;% 
+
+###recode categorical predictors into dummy variables using one-hot encoding.
+
+    step_dummy(all_of(categorical),one_hot=TRUE)
+
+blueprint</code></pre>
+<pre><code>## Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##         ID          1
+##    outcome          1
+##  predictor         27
+## 
+## Operations:
+## 
+## Creating missing data variable indicators for all_of(categorical), all_of(numeric)
+## Zero variance filter on all_of(numeric)
+## Mean Imputation for all_of(numeric)
+## Mode Imputation for all_of(categorical)
+## Harmonic numeric variables for date
+## Harmonic numeric variables for month
+## Natural Splines on all_of(numeric)
+## Centering and scaling for paste0(numeric, &quot;_ns_1&quot;), paste0(numeric, &quot;_ns_...
+## Dummy variables from all_of(categorical)</code></pre>
+<pre class="r"><code>prepare &lt;- prep(blueprint, training = data_edu)
+prepare</code></pre>
+<pre><code>## Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##         ID          1
+##    outcome          1
+##  predictor         27
+## 
+## Training data contained 189426 data points and 538 incomplete rows. 
+## 
+## Operations:
+## 
+## Creating missing data variable indicators for sex, ethnic_cd, tst_bnch, migrant_ed_fg, ind_ed... [trained]
+## Zero variance filter removed no terms [trained]
+## Mean Imputation for enrl_grd [trained]
+## Mode Imputation for sex, ethnic_cd, tst_bnch, migrant_ed_fg, ind_ed... [trained]
+## Harmonic numeric variables for &lt;none&gt; [trained]
+## Harmonic numeric variables for &lt;none&gt; [trained]
+## Natural Splines on enrl_grd [trained]
+## Centering and scaling for enrl_grd_ns_1, enrl_grd_ns_2, enrl_grd_ns_3 [trained]
+## Dummy variables from sex, ethnic_cd, tst_bnch, migrant_ed_fg, ind_ed_fg, sp_ed... [trained]</code></pre>
 </div>
 <div id="task-2.6" class="section level2">
 <h2>Task 2.6</h2>
+<pre class="r"><code>baked_data_edu &lt;- bake(prepare, new_data = data_edu)
+baked_data_edu</code></pre>
+<pre><code>## # A tibble: 189,426 × 93
+##    score  date month    id na_ind_sex na_ind_ethnic_cd na_ind_tst_bnch
+##    &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;      &lt;int&gt;            &lt;int&gt;           &lt;int&gt;
+##  1  2340    14     5     1          0                0               0
+##  2  2430     5     6     2          0                0               0
+##  3  2551     1     5     3          0                0               0
+##  4  2529     1     5     5          0                0               0
+##  5  2417    22     5     7          0                0               0
+##  6  2620    25     5    10          0                0               0
+##  7  2515    10     5    12          0                0               0
+##  8  2305     9     5    13          0                0               0
+##  9  2346    11     5    14          0                0               0
+## 10  2395    24     5    16          0                0               0
+## # … with 189,416 more rows, and 86 more variables: na_ind_migrant_ed_fg &lt;int&gt;,
+## #   na_ind_ind_ed_fg &lt;int&gt;, na_ind_sp_ed_fg &lt;int&gt;, na_ind_tag_ed_fg &lt;int&gt;,
+## #   na_ind_econ_dsvntg &lt;int&gt;, na_ind_stay_in_dist &lt;int&gt;,
+## #   na_ind_stay_in_schl &lt;int&gt;, na_ind_dist_sped &lt;int&gt;,
+## #   na_ind_trgt_assist_fg &lt;int&gt;, na_ind_ayp_dist_partic &lt;int&gt;,
+## #   na_ind_ayp_schl_partic &lt;int&gt;, na_ind_ayp_dist_prfrm &lt;int&gt;,
+## #   na_ind_ayp_schl_prfrm &lt;int&gt;, na_ind_rc_dist_partic &lt;int&gt;, …</code></pre>
 </div>
 <div id="task-2.7" class="section level2">
 <h2>Task 2.7</h2>
+<pre class="r"><code>baked_data_edu &lt;- baked_data_edu %&gt;% 
+  select(-c(date, month))
+baked_data_edu</code></pre>
+<pre><code>## # A tibble: 189,426 × 91
+##    score    id na_ind_sex na_ind_ethnic_cd na_ind_tst_bnch na_ind_migrant_ed_fg
+##    &lt;int&gt; &lt;int&gt;      &lt;int&gt;            &lt;int&gt;           &lt;int&gt;                &lt;int&gt;
+##  1  2340     1          0                0               0                    0
+##  2  2430     2          0                0               0                    0
+##  3  2551     3          0                0               0                    0
+##  4  2529     5          0                0               0                    0
+##  5  2417     7          0                0               0                    0
+##  6  2620    10          0                0               0                    0
+##  7  2515    12          0                0               0                    0
+##  8  2305    13          0                0               0                    0
+##  9  2346    14          0                0               0                    0
+## 10  2395    16          0                0               0                    0
+## # … with 189,416 more rows, and 85 more variables: na_ind_ind_ed_fg &lt;int&gt;,
+## #   na_ind_sp_ed_fg &lt;int&gt;, na_ind_tag_ed_fg &lt;int&gt;, na_ind_econ_dsvntg &lt;int&gt;,
+## #   na_ind_stay_in_dist &lt;int&gt;, na_ind_stay_in_schl &lt;int&gt;,
+## #   na_ind_dist_sped &lt;int&gt;, na_ind_trgt_assist_fg &lt;int&gt;,
+## #   na_ind_ayp_dist_partic &lt;int&gt;, na_ind_ayp_schl_partic &lt;int&gt;,
+## #   na_ind_ayp_dist_prfrm &lt;int&gt;, na_ind_ayp_schl_prfrm &lt;int&gt;,
+## #   na_ind_rc_dist_partic &lt;int&gt;, na_ind_rc_schl_partic &lt;int&gt;, …</code></pre>
 </div>
 <div id="task-2.8" class="section level2">
 <h2>Task 2.8</h2>
+<pre class="r"><code>rio::export(baked_data_edu, file = &quot;Vader_HWK1_Task2Data.csv&quot;)</code></pre>
 </div>
 </div>
 

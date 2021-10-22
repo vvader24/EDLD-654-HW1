@@ -6,7 +6,20 @@ output: html_document
 ---
 
 # Setup 
-```{r setup}
+
+```{css, echo=FALSE}
+pre {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+pre[class] {
+  max-height: 100px;
+}
+```
+
+
+```{r setup, message=FALSE}
 library(tidyverse)
 library(rio)
 library(janitor)
@@ -16,13 +29,14 @@ library(unglue)
 library(finalfit)
 #devtools::install_github("tidymodels/recipes")
 require(recipes)
+
 ```
 
 
 # Part 1: Preprocessing Text Data
 
 ```{r eval=TRUE, echo=FALSE}
-load("~/Desktop/EDLD 654/HW 1/Text Analysis HW 1/Task1_ word embed.RData")
+load("~/Desktop/EDLD 654/EDLD-654-HW1/Task1_ word embed.RData")
 ```
 
 ## Task 1.1, 1.2, 1.3
@@ -55,8 +69,7 @@ head(data, 3)
 
 
 ## Task 1.4
-```{r eval=FALSE, echo=TRUE}
-
+```{r, message=FALSE}
   require(quanteda)
   require(quanteda.textstats)
   require(udpipe)
@@ -70,7 +83,10 @@ head(data, 3)
   reticulate::import('nltk')
   reticulate::import('tokenizers')
   require(text)
-#------
+```
+
+
+```{r eval=FALSE, echo=TRUE}
 word_embeds <- vector('list',nrow(data))
  
  for(i in 1:nrow(data)){
@@ -143,6 +159,7 @@ blueprint <- recipe(
 blueprint
 
 prepare <- prep(blueprint, training = data_tweet)
+
 prepare
 ```
 
@@ -159,7 +176,6 @@ baked_data
  baked_data <- baked_data %>% 
    select(-c(day, date, hour))
 names(baked_data)
-#As you can see above, baked_data does
 ```
 
 ## Task 1.9
@@ -171,7 +187,7 @@ rio::export(baked_data, file = "Vader_HWK1_Task1Data.csv")
 # Part 2: Preprocessing Continuous and Categorical Variables
 
 ```{r eval=TRUE, echo=FALSE}
-load("~/Desktop/EDLD 654/HW 1/Text Analysis HW 1/Task2.RData")
+load("~/Desktop/EDLD 654/EDLD-654-HW1/Task2.RData")
 ```
 
 ## Task 2.1, 2.2
@@ -185,16 +201,16 @@ data_edu <- rio::import("https://raw.githubusercontent.com/uo-datasci-specializa
          date = as.numeric(unglue_vec(tst_dt, "{x}/{y}/{z}", var = "y"))) %>%
   select(-tst_dt) 
 
-data_edu %>% count(date) %>% knitr::kable()
+data_edu %>% count(date)
 
-data_edu %>% count(month) %>% knitr::kable()
+data_edu %>% count(month)
 
 ```
 
 ## Task 2.3
 ```{r}
 d <- ff_glimpse(data_edu)
-d %>% knitr::kable()
+d
 
 cat_var <- d[["Categorical"]] %>% 
   filter(missing_percent > 75) %>% 
@@ -218,8 +234,7 @@ all_CatVar <- rownames(ff_glimpse(data_edu)$Categorical)
 
 data_edu %>% 
   select(c(paste(all_CatVar))) %>% 
-  map(., table) %>% 
-  knitr::kable()
+  map(., table)
 
 #Notes for Vader - Figure out how to extract variable from a list with a certain level
 
@@ -231,8 +246,7 @@ data_edu <- data_edu %>%
 #Check
 data_edu %>% 
   select(c(paste(all_CatVar))) %>% 
-  map(., table)%>% 
-  knitr::kable()
+  map(., table)
 
 # check the distribution of numeric variables and make sure there is no anomaly.
 
@@ -242,11 +256,11 @@ data_edu %>%
   gather() %>%                            
   ggplot(aes(value)) +                     # Plot the values
     facet_wrap(~ key, scales = "free") +   # In separate panels
-    geom_density()   
-
-#Ask Cengiz about this 
+    geom_bar() 
 ```
 
+
+The bar plots indicate no anomalous values in these variables. 
 
 ## Task 2.5
 ```{r}
@@ -327,6 +341,7 @@ baked_data_edu
 ```{r}
 baked_data_edu <- baked_data_edu %>% 
   select(-c(date, month))
+baked_data_edu
 ```
 
 
